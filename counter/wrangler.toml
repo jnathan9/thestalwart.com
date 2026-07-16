@@ -1,0 +1,8 @@
+name = "stalwart-counter"
+pages_build_output_dir = "./public"
+compatibility_date = "2026-07-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "stalwart-counter"
+database_id = "f2d37a6f-7bfb-451b-a176-e6a1fe49d56b"
