@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en" style="background:#0a0e17">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FedLock V3 (Experimental): FOMC Hawkishness</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e17; --bg-card: #111827; --bg-hover: #1a2332;
+    --fg: #e2e8f0; --fg-dim: #7a8ba0; --fg-muted: #4a5568;
+    --grid: #1a2332; --border: #1e2d3d; --border-accent: #2a3f55;
+    --accent: #f59e0b; --accent-blue: #58a6ff;
+    --hawk: #ef4444; --dove: #3b82f6; --chair-gold: #f39c12; --neutral: #6b7280;
+    --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+    --font-serif: 'Source Serif 4', Georgia, serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--font-mono); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border-accent); border-radius: 3px; }
+
+  /* HEADER */
+  .header {
+    padding: 40px 48px 28px;
+    border-bottom: 1px solid var(--border);
+    position: relative; overflow: hidden;
+  }
+  .header::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at 20% 50%, #1e3a5f15 0%, transparent 70%),
+                radial-gradient(ellipse at 80% 20%, #3b1a2e15 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .header-top {
+    display: flex; align-items: baseline; gap: 16px; margin-bottom: 6px; position: relative;
+  }
+  .header-top h1 {
+    font-family: var(--font-serif); font-size: 36px; font-weight: 700; letter-spacing: -1.5px;
+    background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .header-top .tag {
+    font-size: 10px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--accent); border: 1px solid var(--accent); padding: 2px 8px; border-radius: 2px;
+  }
+  .header-nav {
+    margin-left: auto; font-size: 12px; position: relative;
+  }
+  .header-nav a {
+    color: var(--accent-blue); text-decoration: none; letter-spacing: 0.3px;
+  }
+  .header-nav a:hover { text-decoration: underline; }
+  .header-subtitle {
+    font-family: var(--font-serif); font-size: 16px; font-weight: 300;
+    color: var(--fg-dim); margin-bottom: 24px; line-height: 1.5; max-width: 800px; position: relative;
+  }
+  .stats-row { display: flex; gap: 36px; position: relative; }
+  .stat { display: flex; flex-direction: column; }
+  .stat-value { font-size: 24px; font-weight: 700; letter-spacing: -1px; color: var(--fg); }
+  .stat-label { font-size: 9px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: var(--fg-muted); margin-top: 2px; }
+
+  /* TABS */
+  .tabs {
+    display: flex; gap: 0; border-bottom: 1px solid var(--border); padding: 0 48px;
+    position: relative;
+  }
+  .tab {
+    padding: 11px 20px; cursor: pointer; color: var(--fg-muted); font-size: 12px;
+    font-weight: 500; letter-spacing: 0.5px; border-bottom: 2px solid transparent;
+    white-space: nowrap; transition: color 0.15s;
+  }
+  .tab:hover { color: var(--fg); }
+  .tab.active { color: var(--fg); border-bottom-color: var(--accent); }
+
+  /* CONTROLS */
+  .controls {
+    padding: 10px 48px; display: flex; flex-wrap: wrap; gap: 12px;
+    align-items: center; border-bottom: 1px solid var(--border);
+  }
+  .control-group { display: flex; align-items: center; gap: 6px; }
+  .control-group label {
+    font-size: 10px; color: var(--fg-muted); text-transform: uppercase;
+    letter-spacing: 1px; margin-right: 4px; font-weight: 500;
+  }
+  .control-group select, .control-group input {
+    background: var(--bg-card); color: var(--fg); border: 1px solid var(--border);
+    border-radius: 3px; padding: 5px 10px; font-size: 12px; font-family: var(--font-mono);
+    outline: none;
+  }
+  .control-group select:focus, .control-group input:focus { border-color: var(--accent); }
+  .control-group input { width: 220px; }
+
+  /* MACRO OVERLAY PILLS */
+  .macro-toggles { display: flex; gap: 8px; align-items: center; }
+  .macro-toggles label {
+    font-size: 10px; color: var(--fg-muted); text-transform: uppercase;
+    letter-spacing: 1px; margin-right: 4px; font-weight: 500;
+  }
+  .macro-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 12px; border-radius: 3px; cursor: pointer;
+    font-size: 11px; font-family: var(--font-mono); font-weight: 500;
+    color: var(--fg-dim); background: transparent;
+    border: 1px solid var(--border); transition: all 0.15s;
+    letter-spacing: 0.3px; user-select: none;
+  }
+  .macro-pill:hover { border-color: var(--fg-dim); color: var(--fg); }
+  .macro-pill.active { color: var(--fg); }
+  .macro-pill .dot {
+    width: 8px; height: 8px; border-radius: 50%; opacity: 0.5;
+  }
+  .macro-pill.active .dot { opacity: 1; }
+
+  /* CONTENT */
+  .chart-container { width: 100%; height: calc(100vh - 160px); min-height: 500px; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .stats-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px;
+    padding: 14px 20px; margin: 12px 48px; display: inline-flex; gap: 24px; flex-wrap: wrap;
+  }
+  .stats-card .stat .val { font-size: 18px; font-weight: 600; }
+  .stats-card .stat .lbl { font-size: 10px; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .rank-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 2px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
+  }
+
+  /* METHODOLOGY */
+  .prose {
+    max-width: 720px; margin: 0 auto; padding: 36px 24px 64px;
+    line-height: 1.8; font-size: 14px; color: var(--fg); font-family: var(--font-serif);
+  }
+  .prose h2 {
+    font-family: var(--font-serif); font-size: 20px; font-weight: 600;
+    margin: 36px 0 12px; letter-spacing: -0.3px;
+  }
+  .prose h2:first-child { margin-top: 0; }
+  .prose h3 {
+    font-family: var(--font-serif); font-size: 17px; font-weight: 600;
+    margin: 28px 0 10px; letter-spacing: -0.2px;
+  }
+  .prose p { margin: 0 0 16px; }
+  .prose table { border-collapse: collapse; margin: 16px 0; font-size: 12px; width: 100%; font-family: var(--font-mono); }
+  .prose th, .prose td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .prose th { color: var(--fg-muted); font-weight: 600; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; }
+  .prose em { color: var(--accent-blue); font-style: normal; }
+  .prose img { width: 100%; max-width: 800px; border-radius: 6px; margin: 20px 0; border: 1px solid var(--border); cursor: pointer; transition: opacity 0.15s; }
+  .prose img:hover { opacity: 0.85; }
+  .prose .chart-caption { font-size: 12px; color: var(--fg-dim); margin: -12px 0 20px; }
+
+  /* LIGHTBOX */
+  .lightbox {
+    display: none; position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.88); cursor: pointer;
+    align-items: center; justify-content: center;
+  }
+  .lightbox.open { display: flex; }
+  .lightbox img {
+    max-width: 95vw; max-height: 92vh; border-radius: 6px;
+    border: 1px solid var(--border); cursor: default;
+  }
+
+  #loading {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+  }
+  #loading span { color: var(--fg-muted); font-size: 14px; font-family: var(--font-serif); }
+
+  @media (max-width: 1200px) {
+    .header, .controls { padding-left: 24px; padding-right: 24px; }
+    .tabs { padding: 0 24px; }
+    .stats-card { margin: 8px 24px; }
+  }
+  @media (max-width: 768px) {
+    .header { padding: 24px 16px 20px; }
+    .header-top h1 { font-size: 24px; }
+    .tabs { padding: 0 16px; }
+    .tab { padding: 8px 14px; font-size: 11px; }
+    .controls { padding: 8px 16px; }
+    .stats-card { margin: 8px 16px; gap: 16px; }
+    .chart-container { height: calc(100vh - 180px); min-height: 400px; }
+  }
+</style>
+</head>
+<body style="background:#0a0e17">
+
+<div id="loading"><span>Loading tournament data&#8230;</span></div>
+
+<div class="header">
+  <div class="header-top">
+    <h1>FedLock <span style="color:#f39c12;font-size:0.55em;">V3 · experimental</span></h1>
+  <div style="background:#1a2332;border:1px solid #f39c12;border-radius:6px;margin:12px auto;max-width:1100px;padding:10px 16px;color:#f39c12;font-size:14px;">
+    <strong>V3 preview (experimental).</strong> New open-weights judge (Llama 3.3 70B),
+    deduplicated corpus, revised TrueSkill statistics. Runs in parallel with the
+    <a href="https://jnathan9.github.io/fedlock/" style="color:#f39c12;text-decoration:underline;">main dashboard</a>,
+    which remains the official version until V3 is formally adopted.
+  </div>
+  </div>
+  <div class="header-subtitle">
+    FedLock is an experiment from <a href="https://x.com/thestalwart" style="color: var(--accent-blue);">Joe Weisenthal</a>, examining whether large language models can reliably measure textual sentiment at scale. Fed speeches are the test corpus. Results reflect LLM judgment, not definitive characterizations of any official&#8217;s views. See <a href="#" onclick="document.querySelector('[data-tab=methodology]').click(); return false;" style="color: var(--accent-blue);">Methodology</a> for details.
+  </div>
+  <div class="stats-row">
+    <div class="stat">
+      <div class="stat-value" id="stat-speeches">&#8212;</div>
+      <div class="stat-label">Speeches rated</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="stat-years">&#8212;</div>
+      <div class="stat-label">Coverage</div>
+    </div>
+  </div>
+</div>
+
+<div class="tabs" id="tabs">
+  <div class="tab active" data-tab="timeline">Timeline</div>
+  <div class="tab" data-tab="rankings">Rankings</div>
+  <div class="tab" data-tab="detail">Speaker Detail</div>
+  <div class="tab" data-tab="methodology">Methodology</div>
+</div>
+
+<!-- Timeline Controls -->
+<div class="controls tab-controls" data-for="timeline">
+  <div class="macro-toggles">
+    <label>Y-Axis</label>
+    <div class="macro-pill" id="decile-toggle">Decile</div>
+    <span style="display:inline-block;width:1px;height:18px;background:var(--border);margin:0 8px"></span>
+    <label>Overlay</label>
+    <div class="macro-pill" data-series="fed_funds"><span class="dot" style="background:#22d3ee"></span>Fed Funds</div>
+    <div class="macro-pill" data-series="core_pce"><span class="dot" style="background:#f97316"></span>Core PCE</div>
+    <div class="macro-pill" data-series="treasury_10y"><span class="dot" style="background:#34d399"></span>10Y Yield</div>
+    <div class="macro-pill" data-series="spread_10y2y"><span class="dot" style="background:#a78bfa"></span>2-10 Spread</div>
+    <div class="macro-pill" data-series="spread_3m2y"><span class="dot" style="background:#fbbf24"></span>3M-2Y Spread</div>
+    <div class="macro-pill" data-series="taylor_rule"><span class="dot" style="background:#f472b6"></span>Taylor Rule</div>
+  </div>
+</div>
+
+<!-- Rankings Controls -->
+<div class="controls tab-controls" data-for="rankings" style="display:none;">
+  <div class="control-group">
+    <label>Min. Speeches</label>
+    <select id="rank-min-speeches">
+      <option value="5">5+</option>
+      <option value="10" selected>10+</option>
+      <option value="20">20+</option>
+      <option value="50">50+</option>
+    </select>
+  </div>
+</div>
+
+<!-- Speaker Detail Controls -->
+<div class="controls tab-controls" data-for="detail" style="display:none;">
+  <div class="control-group">
+    <label>Speaker</label>
+    <input id="detail-speaker" list="speaker-list" placeholder="Type a name..." autocomplete="off">
+    <datalist id="speaker-list"></datalist>
+  </div>
+  <div class="control-group">
+    <label>Score</label>
+    <select id="detail-score-mode">
+      <option value="adjusted" selected>Era-Adjusted</option>
+      <option value="raw">Raw</option>
+    </select>
+  </div>
+</div>
+
+<div class="tab-content active" data-tab="timeline"><div id="chart-timeline" class="chart-container"></div></div>
+<div class="tab-content" data-tab="rankings">
+  <div style="padding: 10px 48px 0; color: var(--fg-dim); font-size: 12px; line-height: 1.6; max-width: 800px; font-family: var(--font-serif);">
+    Scores are era-adjusted: each speech is measured against the quarterly average, then re-centered to 50.
+    This separates a speaker&#8217;s dispositional hawkishness from the era they spoke in.
+  </div>
+  <div id="chart-rankings" class="chart-container"></div>
+</div>
+<div class="tab-content" data-tab="detail">
+  <div id="detail-stats" class="stats-card"></div>
+  <div id="chart-detail" class="chart-container" style="height: calc(100vh - 220px);"></div>
+</div>
+<div class="tab-content" data-tab="methodology">
+  <div class="prose">
+    <p style="color: var(--fg-dim); font-size: 0.85em; margin-bottom: 1.5em;">This methodology was written by Claude (Anthropic) with editing and direction from Joe Weisenthal.</p>
+    <h2>What This Measures</h2>
+    <p>Each point represents a single Federal Reserve speech scored on a hawkish&#8211;dovish spectrum. A score of 50 is neutral. Higher scores indicate a preference for tighter monetary policy; lower scores indicate a preference for accommodation.</p>
+    <p>The scores are not based on keyword counts, dictionary methods, or pre-trained classifiers. They come from a pairwise tournament: Gemini 2.0 Flash reads two anonymized speeches side by side and decides which takes the more hawkish position. After 67,000 of these head-to-head comparisons across 4,479 policy speeches, a TrueSkill rating engine produces a continuous score for each speech. That works out to roughly 30 comparisons per speech on average, which is well past the point where ratings stabilize. By the end of the tournament, every speech had converged to a confidence interval (&#963;) below 2.0 on a 100-point scale, meaning additional comparisons would not meaningfully change the rankings.</p>
+
+    <h2>How the Comparisons Work</h2>
+    <p>Each comparison presents two speeches with speaker identities stripped out. Names, titles, and structural labels (e.g., &#8220;CHAIR POWELL.&#8221;) are replaced with generic tokens so the judge cannot identify who is speaking. This matters because the model has been trained on vast amounts of text about the Fed, and it &#8220;knows&#8221; who the hawks and doves are. Without anonymization, it could let that prior knowledge influence its judgments rather than reading the text on its merits. (We tested this directly. See <a href="#name-contamination" style="color: var(--accent-blue);">Name Contamination</a> below.)</p>
+    <p>Alongside each excerpt, the judge sees macroeconomic conditions at the time of the speech: Core PCE inflation, unemployment rate, GDP growth, and the VIX. This macro-relative calibration is the key design choice. A speaker urging caution on rate cuts when inflation is at 2.1% is meaningfully hawkish; the same language when inflation is at 8.5% is just stating the obvious.</p>
+    <img src="https://jnathan9.github.io/fedlock/pairwise_comparison.png" alt="How a pairwise comparison is presented to the judge">
+    <p class="chart-caption">Each comparison presents two redacted excerpts with macroeconomic context. The judge decides which speaker takes the more hawkish stance relative to conditions at the time.</p>
+
+    <h2>Why Gemini Flash?</h2>
+    <p>The judge model is Llama 3.3 70B, an open-weights model that cannot be discontinued by a vendor, accessed via the <a href="https://openrouter.ai/" style="color: var(--accent-blue);">OpenRouter</a> API. The entire tournament cost approximately $25. Using a fast, inexpensive model demonstrates that the LLM-as-judge technique is accessible and reproducible. You don&#8217;t need expensive frontier models to produce meaningful sentiment rankings. Parallel tournaments using Claude Sonnet and DeepSeek V3 produced closely aligned results, confirming that the signal comes from the method, not the model.</p>
+
+    <h2>Why Pairwise?</h2>
+    <p>Why not just ask the model to score each speech directly on a 1&#8211;100 scale? We tried that too. The same model scored the same speeches both ways. The difference is striking:</p>
+    <img src="https://jnathan9.github.io/fedlock/distribution_comparison.png" alt="Pairwise tournament vs direct scoring distribution">
+    <p class="chart-caption">Both distributions use Gemini 2.0 Flash on the same FOMC policy corpus.</p>
+    <p>When asked to score speeches directly, the model collapses into two camps (&#8220;dovish&#8221; or &#8220;hawkish&#8221;) with heavy anchoring on multiples of 5 and 10. There is almost no middle ground. The pairwise tournament, by contrast, produces a smooth, continuous distribution with far more discriminating power. Two speeches that a direct scorer would both call &#8220;65&#8221; can be separated by meaningful differences when compared head to head.</p>
+    <p>This is a well-documented limitation of LLM evaluation. When asked to assign absolute scores, models struggle to maintain a consistent internal scale across thousands of items. They anchor on round numbers, default to a few modal values, and lose discriminating power. A growing body of research confirms that pairwise comparison produces more reliable, human-aligned judgments:</p>
+    <ul style="margin: 0 0 16px; padding-left: 24px; color: var(--fg-dim); font-size: 13px; line-height: 1.8;">
+      <li><a href="https://arxiv.org/abs/2403.16950" style="color: var(--accent-blue);">Liu et al. (COLM 2024)</a>: &#8220;Aligning with Human Judgement&#8221; shows that formulating evaluation as pairwise ranking rather than direct scoring achieves state-of-the-art alignment with human preferences.</li>
+      <li><a href="https://arxiv.org/abs/2411.15594" style="color: var(--accent-blue);">Gu et al. (2024)</a>: A comprehensive survey of LLM-as-a-Judge methods, documenting that pairwise assessments outperform pointwise scoring in positional consistency and human agreement across multiple benchmarks.</li>
+    </ul>
+    <p>Forced comparison sidesteps the calibration problem entirely. The model doesn&#8217;t need to assign a number. It just needs to decide which of two speeches is more hawkish. That&#8217;s a much easier judgment call, and TrueSkill aggregates those binary decisions into a continuous rating.</p>
+
+    <h2>The Rating System</h2>
+    <p>The tournament uses Microsoft&#8217;s TrueSkill algorithm. Each speech starts at &#956;=50 with high uncertainty (&#963;=8.33). As it wins or loses comparisons, its rating updates. Pairs are selected through Swiss-style matching, uncertainty-targeted sampling, and random draws for efficient convergence. At 67,000 comparisons (averaging 30 per speech), all speeches converged to &#963;&lt;2.0.</p>
+
+    <h2>Corpus</h2>
+    <p>The corpus contains 4,479 policy-relevant speeches by 69 FOMC members from 1995 to 2026. Sources include federalreserve.gov, FRASER, FOMC press conference transcripts, and regional Federal Reserve bank websites. Non-policy content (commencement addresses, fintech talks, bank supervision, community development) is filtered out via a two-stage classifier: an initial LLM pass identifies policy-relevant speeches, followed by a stricter re-review that removes speeches whose primary purpose is not communicating a monetary policy view.</p>
+
+    <h2>Era Adjustment</h2>
+    <p>Raw scores conflate dispositional hawkishness with the era a speaker served in. The Rankings and Speaker Detail tabs use era-adjusted scores: for each speech, <em>adjusted = raw &#8722; quarterly mean + 50</em>. This re-centers 50 to &#8220;neutral relative to contemporaries.&#8221; The Timeline tab retains raw scores to preserve the visible dynamics of hawkish and dovish eras.</p>
+
+    <h2>The Timeline</h2>
+    <p>The white trend line on the Timeline tab is a Gaussian-weighted moving average (&#963;=45 days, sampled weekly). At each point in time, nearby speeches contribute more to the average and distant speeches contribute less, with a smooth falloff. This captures the overall mood of Fed communication at any given moment without being dominated by individual outlier speeches.</p>
+
+    <h2>Sanity Checks</h2>
+    <p>There is no ground truth for hawkishness, but there are plenty of reasons to think these scores are well-calibrated.</p>
+    <p><strong>Speaker rankings match conventional wisdom.</strong> Thomas Hoenig, famous for his eight consecutive dissents against zero rates in 2010, ranks as the most hawkish speaker in the dataset. Charles Plosser, Richard Fisher, and Jeffrey Lacker round out the top five. On the dovish side, Lael Brainard, Sarah Bloom Raskin, and Charles Evans all land in the bottom quartile. None of this was programmed in. These rankings emerged purely from pairwise text comparisons.</p>
+    <p><strong>The timeline tracks macro cycles.</strong> The smoothed trend line peaks in Q3 2022, exactly when the Fed was at its most aggressive on inflation. It troughs in Q2 2020, during the COVID emergency response. It drops sharply during the financial crisis (2008&#8211;2009) and rises during the Greenspan tightening of 2004&#8211;2006. These are not coincidences.</p>
+    <p><strong>Individual speeches are recognizable.</strong> Powell&#8217;s August 2022 Jackson Hole address, widely viewed as a defining moment in the inflation fight, scores 78 out of 100. Hoenig&#8217;s 2010 speeches all score well above average despite coming during ZIRP, when the quarterly mean was deeply dovish. Meanwhile, COVID-era emergency speeches from Williams, Powell, and Bullard score in the mid-20s.</p>
+    <p><strong>The hawkishness line tracks the Taylor Rule.</strong> The classic Taylor Rule prescribes an interest rate based on inflation and the unemployment gap. It has nothing to do with speech text. Yet when overlaid against the smoothed hawkishness trend, the two lines move in close alignment across three decades:</p>
+    <img src="https://jnathan9.github.io/fedlock/taylor_rule_overlay.png" alt="Hawkishness trend vs Taylor Rule">
+    <p class="chart-caption">White: smoothed hawkishness score (left axis). Pink: Taylor Rule rate (right axis). The Taylor Rule is computed from Core PCE, unemployment, and CBO NAIRU estimates.</p>
+    <p>The major swings match: the dot-com tightening, the post-GFC collapse, the long ZIRP era, and the sharp 2022 inflation spike. The implication is that Fed officials talk roughly the way a simple policy rule would suggest they should, and the model is picking that up from text alone.</p>
+    <h2 id="name-contamination">Name Contamination</h2>
+    <p>A natural concern with using an LLM as judge: does the model already &#8220;know&#8221; who these speakers are? There are two distinct risks here:</p>
+    <ol>
+      <li><strong>Direct identification.</strong> The model sees a name or title in the text and recognizes the speaker. &#8220;Chair Powell&#8221; or &#8220;CHAIRMAN GREENSPAN.&#8221; appears in the excerpt, and the model&#8217;s training data tells it how hawkish that person is.</li>
+      <li><strong>Stylistic fingerprinting.</strong> Even with names stripped, the model might recognize a speaker from their vocabulary, sentence structure, or rhetorical habits. Hoenig hammers &#8220;moral hazard&#8221;; Evans talks about &#8220;optimal control.&#8221; These patterns could be enough.</li>
+    </ol>
+
+    <h3>What we do about it</h3>
+    <p>The first risk is addressed by deep redaction. Before any speech enters the tournament, a five-layer anonymization pipeline processes the text using a roster of all 77 known FOMC members and their aliases:</p>
+    <ol>
+      <li>Structural speaker labels are replaced: <code>CHAIR POWELL.</code> &rarr; <code>SPEAKER:</code></li>
+      <li>Press conference reporter names are stripped: <code>NICK TIMIRAOS.</code> &rarr; <code>REPORTER:</code></li>
+      <li>Title-name combinations in running text are removed: &#8220;Governor Waller&#8221;, &#8220;President Williams&#8221; &rarr; <code>[OFFICIAL]</code></li>
+      <li>Full name mentions (first + last, aliases) are replaced: &#8220;Janet Yellen&#8221; &rarr; <code>[OFFICIAL]</code></li>
+      <li>Last-name-only mentions are caught: &#8220;as Bernanke argued&#8221; &rarr; &#8220;as <code>[OFFICIAL]</code> argued&#8221;</li>
+    </ol>
+    <p>An exclusion list protects false positives: &#8220;Phillips curve,&#8221; &#8220;Taylor rule,&#8221; and &#8220;Jackson Hole&#8221; are preserved. The result is that the judge model sees no names, no titles, and no identifying structural labels.</p>
+    <p>The second risk, stylistic fingerprinting, is harder to eliminate. We cannot strip a speaker&#8217;s rhetorical habits without destroying the signal we&#8217;re trying to measure. But we can test whether it matters.</p>
+
+    <h3>How we tested it</h3>
+    <p>We ran a series of controlled experiments to measure exactly how much the model&#8217;s prior knowledge affects scores. Each experiment ran a mini-tournament (8,000 pairwise comparisons) on the same corpus with the same model, but with names deliberately manipulated in different ways. The question: if the model already &#8220;knows&#8221; a speech is Lacker&#8217;s, does telling it that, or telling it the opposite, change the score?</p>
+    <table>
+      <thead><tr><th>Arm</th><th>Design</th><th>What it tests</th></tr></thead>
+      <tbody>
+        <tr><td><strong>A</strong></td><td>Baseline: fully anonymized, no names</td><td>Reference scores (the ones shown on this site)</td></tr>
+        <tr><td><strong>B</strong></td><td>True names shown with each speech</td><td>Does providing the real name shift scores?</td></tr>
+        <tr><td><strong>C</strong></td><td>Swapped names: hawk speeches labeled with a dove&#8217;s name and vice versa</td><td>Does the model follow the name or the text?</td></tr>
+        <tr><td><strong>E</strong></td><td>All real names <em>except</em> Lacker, who is labeled &#8220;Whitfield&#8221; (a fictional name)</td><td>Does a single real name carry measurable signal?</td></tr>
+      </tbody>
+    </table>
+
+    <h3>What we found</h3>
+    <p><strong>The model does have priors.</strong> In Arm B (true names), hawks shift up +1&ndash;2 &mu; and doves shift down &minus;2&ndash;5 &mu; compared to the anonymous baseline. In Arm C (swapped names), scores shift 3&ndash;6 &mu; in the direction of the <em>swapped</em> name (p&lt;0.001 for both hawk and dove pools). The model knows who these people are, and that knowledge nudges its judgments.</p>
+    <p><strong>But the text dominates.</strong> Even in Arm C, where Lacker&#8217;s speeches are labeled &#8220;Evans&#8221; (a well-known dove), his scores drop by about 6 &mu; but remain above the corpus mean. The model doesn&#8217;t just follow the name. It reads the actual text, disagrees with the label, and still rates the speech as relatively hawkish. The name is a thumb on the scale, not the whole scale.</p>
+    <p><strong>Arm E is the cleanest test.</strong> We re-ran the tournament with every speaker keeping their real name except Lacker, whose speeches were labeled with the fictional surname &#8220;Whitfield.&#8221; Results:</p>
+    <ul>
+      <li><strong>Lacker:</strong> &mu; drops from 54.2 (real name) to 52.1 (fictional name), a shift of &minus;2.1 (p=0.039). His anonymous baseline is 52.9, meaning the fictional name lands right where no name at all does.</li>
+      <li><strong>All 7 other speakers:</strong> deltas range from &minus;0.2 to +0.8, all with p&gt;0.28. Completely stable. Changing Lacker&#8217;s label doesn&#8217;t affect anyone else.</li>
+    </ul>
+    <p>This confirms that the &#8220;Lacker&#8221; label is worth about +2 &mu; of hawkish bias, and that the anonymized baseline successfully removes that signal. A fictional name and no name produce the same score.</p>
+
+    <h3>Why this isn&#8217;t damning</h3>
+    <p>The bias exists but is modest. Even for the most affected speakers, name contamination shifts scores by 2&ndash;5 points on a 100-point scale, far smaller than the 20+ point gaps between genuine hawks and doves. Hoenig doesn&#8217;t rank as the most hawkish speaker because the model knows his reputation. He ranks there because his speeches argue for tighter policy in language that consistently wins pairwise comparisons.</p>
+    <p>More importantly, the baseline scores used on this site are the anonymized ones (Arm A), and the experiments confirm that anonymization is working: stripping the name removes the name signal. The remaining variation comes from the text itself, which is exactly what we want to measure.</p>
+
+    <h2>Limitations</h2>
+    <p>These scores reflect LLM judgment applied consistently across 67,000 comparisons. They are reproducible and internally coherent, but not ground truth.</p>
+    <p>The corpus is imperfect. While it draws from multiple official sources, it does not capture most interviews, media appearances, or informal communication, all of which often carry significant policy signals. Some speeches were likely missed, and despite two rounds of filtering, a small number of borderline speeches may remain. Coverage is uneven: Chairs and Governors are well-represented, while some regional bank presidents have fewer rated speeches, particularly in earlier decades where digital records are sparse.</p>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="this.classList.remove('open')">
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script>
+const BG = '#0a0e17', FG = '#e2e8f0', GRID = '#1a2332', MUTED = '#4a5568', DIM = '#7a8ba0';
+const HAWK_RED = '#ef4444', DOVE_BLUE = '#3b82f6', CHAIR_GOLD = '#f39c12', NEUTRAL_GRAY = '#6b7280';
+const MONO = "'JetBrains Mono', 'SF Mono', monospace";
+const SERIF = "'Source Serif 4', Georgia, serif";
+
+let DATA, CFG, MACRO;
+let ALL_RANKINGS = [];
+let activeMacro = null;
+let useDecile = false;
+
+const MACRO_COLORS = {
+  fed_funds: '#22d3ee',
+  core_pce: '#f97316',
+  treasury_10y: '#34d399',
+  spread_10y2y: '#a78bfa',
+  spread_3m2y: '#fbbf24',
+  taylor_rule: '#f472b6'
+};
+
+async function init() {
+  const resp = await fetch('https://jnathan9.github.io/fedlock/v3/data.json');
+  const raw = await resp.json();
+  DATA = raw.speeches;
+  CFG = raw.config;
+  MACRO = raw.macroSeries || null;
+
+  // Freshness stamp — staleness should never be silent
+  if (CFG.dataThrough) {
+    const stampEl = document.createElement('div');
+    stampEl.style.cssText = 'text-align:center;color:#8b949e;font-size:12px;margin:4px 0 8px;';
+    stampEl.textContent = `Data through ${CFG.dataThrough} · rebuilt ${CFG.builtOn}`;
+    const h1 = document.querySelector('h1');
+    if (h1 && h1.parentNode) h1.parentNode.insertBefore(stampEl, h1.nextSibling);
+  }
+
+  DATA.forEach(s => { s._dt = new Date(s.d); s._ts = s._dt.getTime(); });
+  DATA.sort((a, b) => a._ts - b._ts);
+
+  // Precompute decile for each speech based on mu rank
+  var sorted = DATA.slice().sort((a, b) => a.m - b.m);
+  sorted.forEach((s, i) => { s._decile = Math.min(10, Math.floor(i / sorted.length * 10) + 1); });
+
+  const authors = new Set(DATA.map(s => s.a));
+  const years = DATA.map(s => s._dt.getFullYear());
+  const totalComps = DATA.reduce((s, d) => s + (d.c || 0), 0);
+  document.getElementById('stat-speeches').textContent = DATA.length.toLocaleString();
+  document.getElementById('stat-years').textContent = '1995\u20132026';
+  const metaEl = document.getElementById('meta-speeches');
+  if (metaEl) metaEl.textContent = DATA.length.toLocaleString();
+
+  precomputeRankings();
+  buildControls();
+  initMacroToggles();
+  initDecileToggle();
+  renderTimeline();
+  document.getElementById('loading').style.display = 'none';
+}
+
+function initDecileToggle() {
+  var pill = document.getElementById('decile-toggle');
+  pill.addEventListener('click', function() {
+    useDecile = !useDecile;
+    pill.classList.toggle('active', useDecile);
+    pill.style.borderColor = useDecile ? '#ffffff' : '';
+    renderTimeline();
+  });
+}
+
+// Lightbox for methodology images
+document.querySelectorAll('.prose img').forEach(function(img) {
+  img.addEventListener('click', function() {
+    document.getElementById('lightbox-img').src = this.src;
+    document.getElementById('lightbox').classList.add('open');
+  });
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') document.getElementById('lightbox').classList.remove('open');
+});
+
+function initMacroToggles() {
+  var pills = document.querySelectorAll('.macro-pill');
+  if (!MACRO) {
+    var bar = document.querySelector('.macro-toggles');
+    if (bar) bar.style.display = 'none';
+    return;
+  }
+  pills.forEach(function(pill) {
+    var key = pill.dataset.series;
+    if (!key) return;  // skip non-macro pills (e.g. decile toggle)
+    if (!MACRO[key]) { pill.style.display = 'none'; return; }
+    pill.addEventListener('click', function() {
+      if (activeMacro === key) {
+        activeMacro = null;
+        pill.classList.remove('active');
+        pill.style.borderColor = '';
+      } else {
+        pills.forEach(function(p) { p.classList.remove('active'); p.style.borderColor = ''; });
+        activeMacro = key;
+        pill.classList.add('active');
+        pill.style.borderColor = MACRO_COLORS[key];
+      }
+      renderTimeline();
+    });
+  });
+}
+
+function speakerCategory(name) {
+  const last = name.split(' ').pop();
+  if (CFG.hawks.includes(last)) return 'hawk';
+  if (CFG.doves.includes(last)) return 'dove';
+  if (CFG.chairs.includes(last)) return 'chair';
+  return 'neutral';
+}
+
+function precomputeRankings() {
+  const SKIP = new Set(['Federal Reserve Chair', '']);
+  const byAuthor = {};
+  DATA.forEach(s => {
+    if (SKIP.has(s.a)) return;
+    if (!byAuthor[s.a]) byAuthor[s.a] = [];
+    byAuthor[s.a].push(s.ma);
+  });
+  ALL_RANKINGS = Object.entries(byAuthor)
+    .map(([name, vals]) => {
+      vals.sort((a, b) => a - b);
+      const mean = vals.reduce((s, v) => s + v, 0) / vals.length;
+      const q25 = vals[Math.floor(vals.length * 0.25)];
+      const q75 = vals[Math.floor(vals.length * 0.75)];
+      return { name, mean, q25, q75, n: vals.length, cat: speakerCategory(name) };
+    })
+    .sort((a, b) => b.mean - a.mean);
+}
+
+function getRank(speakerName, minN) {
+  const min = minN || 5;
+  const filtered = ALL_RANKINGS.filter(s => s.n >= min);
+  const idx = filtered.findIndex(s => s.name === speakerName);
+  if (idx === -1) return null;
+  return { rank: idx + 1, total: filtered.length };
+}
+
+function buildControls() {
+  const detailInput = document.getElementById('detail-speaker');
+  const datalist = document.getElementById('speaker-list');
+  const SKIP = new Set(['Federal Reserve Chair', '']);
+  const authorCounts = {};
+  DATA.forEach(s => { if (!SKIP.has(s.a)) authorCounts[s.a] = (authorCounts[s.a] || 0) + 1; });
+  const sortedAuthors = Object.entries(authorCounts).sort((a, b) => a[0].localeCompare(b[0]));
+  sortedAuthors.forEach(([a, c]) => {
+    const opt = document.createElement('option');
+    opt.value = a; opt.label = a + ' (' + c + ')';
+    datalist.appendChild(opt);
+  });
+  if (sortedAuthors.length) detailInput.value = sortedAuthors[0][0];
+  detailInput.addEventListener('change', () => { if (authorCounts[detailInput.value]) renderDetail(); });
+  detailInput.addEventListener('input', () => { if (authorCounts[detailInput.value]) renderDetail(); });
+  document.getElementById('detail-score-mode').addEventListener('change', () => renderDetail());
+  document.getElementById('rank-min-speeches').addEventListener('change', () => renderRankings());
+}
+
+document.getElementById('tabs').addEventListener('click', e => {
+  const tab = e.target.dataset.tab;
+  if (tab) switchTab(tab);
+});
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.tab-controls').forEach(c => c.style.display = c.dataset.for === tab ? '' : 'none');
+  if (tab === 'timeline') renderTimeline();
+  else if (tab === 'rankings') renderRankings();
+  else if (tab === 'detail') renderDetail();
+}
+
+function baseLayout(title, extra) {
+  return Object.assign({
+    paper_bgcolor: BG, plot_bgcolor: BG,
+    font: { color: FG, family: MONO, size: 11 },
+    title: { text: title, font: { size: 15, family: SERIF }, x: 0.01, xanchor: 'left' },
+    margin: { l: 60, r: 60, t: 50, b: 50 },
+    xaxis: { gridcolor: GRID, zerolinecolor: GRID },
+    yaxis: { gridcolor: GRID, zerolinecolor: GRID },
+    hovermode: 'closest',
+    legend: { bgcolor: 'rgba(0,0,0,0)', font: { size: 10, family: MONO } },
+  }, extra || {});
+}
+
+function toDateStr(v) {
+  if (typeof v === 'string') return v;
+  var y = Math.floor(v);
+  var frac = v - y;
+  var d = new Date(y, 0, 1);
+  d.setTime(d.getTime() + frac * 365.25 * 86400000);
+  return d.toISOString().slice(0, 10);
+}
+
+function eraShapes(yMin, yMax, rangeFirst, rangeLast) {
+  var firstDate = rangeFirst || (DATA.length ? DATA[0].d : null);
+  var lastDate = rangeLast || (DATA.length ? DATA[DATA.length - 1].d : null);
+  if (!firstDate || !lastDate) return [];
+  return CFG.eras
+    .filter(function(e) { return toDateStr(e.end) > firstDate && toDateStr(e.start) < lastDate; })
+    .map(function(e) {
+      var x0 = toDateStr(e.start);
+      var x1 = toDateStr(e.end);
+      return {
+        type: 'rect', xref: 'x', yref: 'y', layer: 'below',
+        x0: x0 < firstDate ? firstDate : x0,
+        x1: x1 > lastDate ? lastDate : x1,
+        y0: yMin, y1: yMax,
+        fillcolor: e.color, opacity: 0.08, line: { width: 0 }
+      };
+    });
+}
+
+function gaussianSmooth(speeches, sigmaDays, stepDays, valueFn) {
+  if (!speeches.length) return { dates: [], values: [] };
+  var MS = 86400000;
+  var sigmaMs = sigmaDays * MS;
+  var cutoff = 3 * sigmaMs;
+  var t0 = speeches[0]._ts, t1 = speeches[speeches.length - 1]._ts;
+  var step = (stepDays || 7) * MS;
+  var getVal = valueFn || function(s) { return s.m; };
+  var dates = [], values = [];
+  var samplePoints = [];
+  for (var t = t0; t <= t1; t += step) { samplePoints.push(t); }
+  if (samplePoints[samplePoints.length - 1] < t1) { samplePoints.push(t1); }
+  for (var si = 0; si < samplePoints.length; si++) {
+    var t = samplePoints[si];
+    var wSum = 0, vSum = 0;
+    for (var i = 0; i < speeches.length; i++) {
+      var dt = speeches[i]._ts - t;
+      if (Math.abs(dt) > cutoff) continue;
+      var w = Math.exp(-0.5 * Math.pow(dt / sigmaMs, 2));
+      wSum += w; vSum += w * getVal(speeches[i]);
+    }
+    if (wSum > 0) {
+      dates.push(new Date(t).toISOString().slice(0, 10));
+      values.push(vSum / wSum);
+    }
+  }
+  return { dates: dates, values: values };
+}
+
+function renderTimeline() {
+  var traces = [];
+  var lastDate = DATA[DATA.length - 1].d;
+  var valFn = useDecile ? function(s) { return s._decile; } : function(s) { return s.m; };
+
+  traces.push({
+    type: 'scattergl', mode: 'markers', name: 'Speeches',
+    x: DATA.map(function(s) { return s.d; }),
+    y: DATA.map(valFn),
+    marker: { color: FG, size: 3, opacity: 0.12 },
+    text: DATA.map(function(s) { return s.a + '<br>' + s.d + '<br>' + s.tt + '<br>\u03bc=' + s.m + ' (D' + s._decile + ')'; }),
+    hoverinfo: 'text', showlegend: false
+  });
+
+  var smooth = gaussianSmooth(DATA, 45, 7, valFn);
+  traces.push({
+    type: 'scatter', mode: 'lines', name: 'Hawkishness',
+    x: smooth.dates, y: smooth.values,
+    line: { color: FG, width: 2.5 }, hoverinfo: 'y+x'
+  });
+
+  var hasOverlay = activeMacro && MACRO && MACRO[activeMacro];
+  if (hasOverlay) {
+    var ms = MACRO[activeMacro];
+    var color = MACRO_COLORS[activeMacro];
+    traces.push({
+      type: 'scatter', mode: 'lines',
+      name: ms.label,
+      x: ms.dates, y: ms.values,
+      yaxis: 'y2',
+      line: { color: color, width: 2 },
+      hovertemplate: ms.label + ': %{y:.2f}' + ms.unit + '<extra></extra>'
+    });
+  }
+
+  var yTitle = useDecile ? 'Hawkishness (Decile)' : 'Hawkishness (\u03bc)';
+  var yRange = useDecile ? [0.5, 10.5] : undefined;
+  var midline = useDecile ? 5.5 : 50;
+  var eraMin = useDecile ? 1 : 25;
+  var eraMax = useDecile ? 10 : 75;
+
+  var layoutExtra = {
+    dragmode: 'zoom',
+    xaxis: { gridcolor: GRID, zerolinecolor: GRID, fixedrange: false, range: ['1995-01-01', lastDate] },
+    yaxis: { title: { text: yTitle, font: { size: 12, family: MONO } }, gridcolor: GRID, zerolinecolor: GRID, fixedrange: false, range: yRange, dtick: useDecile ? 1 : undefined },
+    shapes: [].concat(eraShapes(eraMin, eraMax), [
+      { type: 'line', x0: '1995-01-01', x1: lastDate, y0: midline, y1: midline, line: { color: DIM, dash: 'dash', width: 1 } }
+    ]),
+    showlegend: hasOverlay ? true : false
+  };
+
+  if (hasOverlay) {
+    var ms = MACRO[activeMacro];
+    var color = MACRO_COLORS[activeMacro];
+    layoutExtra.yaxis2 = {
+      title: { text: ms.label + ' (' + ms.unit + ')', font: { size: 12, family: MONO, color: color } },
+      overlaying: 'y', side: 'right',
+      gridcolor: 'rgba(0,0,0,0)', zeroline: false, showgrid: false,
+      tickfont: { color: color, size: 10, family: MONO }
+    };
+    layoutExtra.margin = { l: 60, r: 80, t: 50, b: 50 };
+    layoutExtra.legend = {
+      bgcolor: 'rgba(0,0,0,0)', font: { size: 10, family: MONO, color: FG },
+      x: 0.01, y: 0.99, xanchor: 'left', yanchor: 'top'
+    };
+  }
+
+  var layout = baseLayout('Hawkishness Over Time', layoutExtra);
+  Plotly.react('chart-timeline', traces, layout, { responsive: true });
+}
+
+function renderRankings() {
+  var minN = parseInt(document.getElementById('rank-min-speeches').value);
+  var qualified = ALL_RANKINGS.filter(function(s) { return s.n >= minN; });
+  var display = qualified.slice().reverse();
+
+  function scoreColor(mu) {
+    var t = Math.max(0, Math.min(1, (mu - 35) / 30));
+    if (t < 0.5) {
+      var p = t * 2;
+      return 'rgb(' + Math.round(59 + (107 - 59) * p) + ',' + Math.round(130 + (120 - 130) * p) + ',' + Math.round(246 + (141 - 246) * p) + ')';
+    } else {
+      var p2 = (t - 0.5) * 2;
+      return 'rgb(' + Math.round(107 + (239 - 107) * p2) + ',' + Math.round(120 + (68 - 120) * p2) + ',' + Math.round(141 + (68 - 141) * p2) + ')';
+    }
+  }
+
+  var traces = [{
+    type: 'bar', orientation: 'h',
+    y: display.map(function(s) { return s.name; }),
+    x: display.map(function(s) { return s.mean; }),
+    marker: { color: display.map(function(s) { return scoreColor(s.mean); }) },
+    text: display.map(function(s) { return s.name + '<br>Mean: ' + s.mean.toFixed(1) + ' | Speeches: ' + s.n + '<br>IQR: ' + s.q25.toFixed(1) + ' \u2013 ' + s.q75.toFixed(1); }),
+    hoverinfo: 'text', showlegend: false,
+    customdata: display.map(function(s) { return s.name; })
+  }];
+
+  var h = Math.max(600, display.length * 20 + 80);
+  var layout = baseLayout('All ' + display.length + ' Speakers \u2014 Era-Adjusted Hawkishness', {
+    height: h,
+    xaxis: { title: { text: 'Era-Adjusted Hawkishness', font: { size: 12, family: MONO } }, gridcolor: GRID, zerolinecolor: GRID, range: [35, 65], dtick: 5 },
+    yaxis: { gridcolor: GRID, automargin: true, dtick: 1, tickfont: { size: 10, family: MONO } },
+    margin: { l: 220, r: 60, t: 50, b: 50 },
+    shapes: [{ type: 'line', x0: 50, x1: 50, y0: -0.5, y1: display.length - 0.5, line: { color: DIM, dash: 'dash', width: 1 } }],
+    dragmode: 'zoom'
+  });
+
+  Plotly.react('chart-rankings', traces, layout, { responsive: true });
+  document.getElementById('chart-rankings').on('plotly_click', function(ev) {
+    var name = ev.points[0] && ev.points[0].customdata;
+    if (name) {
+      document.getElementById('detail-speaker').value = name;
+      switchTab('detail');
+    }
+  });
+}
+
+function renderDetail() {
+  var speaker = document.getElementById('detail-speaker').value;
+  if (!speaker) return;
+
+  var sp = DATA.filter(function(s) { return s.a === speaker; }).sort(function(a, b) { return a._ts - b._ts; });
+  if (!sp.length) return;
+
+  var mus = sp.map(function(s) { return s.m; });
+  var adjMus = sp.map(function(s) { return s.ma; });
+  var mean = mus.reduce(function(a, b) { return a + b; }, 0) / mus.length;
+  var adjMean = adjMus.reduce(function(a, b) { return a + b; }, 0) / adjMus.length;
+  var adjSD = Math.sqrt(adjMus.reduce(function(s, v) { return s + Math.pow(v - adjMean, 2); }, 0) / adjMus.length);
+  var years = sp.map(function(s) { return s._dt.getFullYear(); });
+  var inst = sp[0].inst || 'N/A';
+  var cat = speakerCategory(speaker);
+
+  var roleLabel = '';
+  if (cat === 'hawk') roleLabel = 'Known Hawk';
+  else if (cat === 'dove') roleLabel = 'Known Dove';
+  else if (cat === 'chair') roleLabel = 'Chair';
+
+  var rankInfo = getRank(speaker, 5);
+  var rankHtml = '';
+  if (rankInfo) {
+    var pct = ((rankInfo.total - rankInfo.rank) / (rankInfo.total - 1) * 100);
+    var rankColor = NEUTRAL_GRAY, rankLabel = '';
+    if (pct >= 75) { rankColor = HAWK_RED; rankLabel = 'Hawkish'; }
+    else if (pct >= 50) { rankColor = CHAIR_GOLD; rankLabel = 'Lean Hawkish'; }
+    else if (pct >= 25) { rankColor = '#58a6ff'; rankLabel = 'Lean Dovish'; }
+    else { rankColor = DOVE_BLUE; rankLabel = 'Dovish'; }
+    rankHtml = '<div class="stat"><span class="val">#' + rankInfo.rank + ' <span class="rank-badge" style="background:' + rankColor + '22;color:' + rankColor + '">' + rankLabel + '</span></span><span class="lbl">of ' + rankInfo.total + ' speakers (5+ speeches)</span></div>';
+  }
+
+  document.getElementById('detail-stats').innerHTML =
+    '<div class="stat"><span class="val">' + speaker + '</span><span class="lbl">' + inst + (roleLabel ? ' \u00b7 ' + roleLabel : '') + '</span></div>' +
+    '<div class="stat"><span class="val">' + sp.length + '</span><span class="lbl">Speeches</span></div>' +
+    '<div class="stat"><span class="val">' + adjMean.toFixed(1) + '</span><span class="lbl">Adj. Mean</span></div>' +
+    '<div class="stat"><span class="val">' + mean.toFixed(1) + '</span><span class="lbl">Raw Mean</span></div>' +
+    '<div class="stat"><span class="val">' + adjSD.toFixed(1) + '</span><span class="lbl">Variability</span></div>' +
+    '<div class="stat"><span class="val">' + Math.min.apply(null, years) + '\u2013' + Math.max.apply(null, years) + '</span><span class="lbl">Years</span></div>' +
+    rankHtml;
+
+  var isAdj = document.getElementById('detail-score-mode').value === 'adjusted';
+  var yKey = isAdj ? 'ma' : 'm';
+  var activeMean = isAdj ? adjMean : mean;
+  var modeLabel = isAdj ? 'Era-Adjusted' : 'Raw';
+  var meanLabel = isAdj ? 'Adj Mean' : 'Mean';
+
+  var traces = [{
+    type: 'scatter', mode: 'markers', name: 'Speeches',
+    x: sp.map(function(s) { return s.d; }),
+    y: sp.map(function(s) { return s[yKey]; }),
+    marker: {
+      color: sp.map(function(s) { return CFG.speechTypeColors[s.st] || MUTED; }),
+      size: 7, opacity: 0.8,
+      line: { color: 'rgba(255,255,255,0.2)', width: 0.5 }
+    },
+    text: sp.map(function(s) { return s.d + '<br>' + s.tt + '<br>adj=' + s.ma + ', raw=' + s.m + ', \u03c3=' + s.s + '<br>' + s.st + ' \u00b7 ' + s.wc + ' words'; }),
+    hoverinfo: 'text'
+  }];
+
+  if (sp.length >= 5) {
+    var w = Math.min(20, Math.floor(sp.length / 2));
+    var avg = [];
+    for (var i = 0; i < sp.length; i++) {
+      var start = Math.max(0, i - Math.floor(w / 2));
+      var end = Math.min(sp.length, i + Math.ceil(w / 2));
+      var slice = sp.slice(start, end).map(function(s) { return s[yKey]; }).sort(function(a, b) { return a - b; });
+      var mid = Math.floor(slice.length / 2);
+      avg.push(slice.length % 2 ? slice[mid] : (slice[mid - 1] + slice[mid]) / 2);
+    }
+    traces.push({
+      type: 'scatter', mode: 'lines', name: 'Rolling Avg (' + w + ')',
+      x: sp.map(function(s) { return s.d; }), y: avg,
+      line: { color: FG, width: 2 }, hoverinfo: 'y+x'
+    });
+  }
+
+  var layout = baseLayout(speaker + ' \u2014 ' + modeLabel + ' Hawkishness', {
+    dragmode: 'zoom',
+    xaxis: { gridcolor: GRID, zerolinecolor: GRID, fixedrange: false },
+    yaxis: { title: { text: modeLabel + ' Hawkishness', font: { size: 12, family: MONO } }, gridcolor: GRID, zerolinecolor: GRID, fixedrange: false },
+    shapes: [].concat(eraShapes(25, 75, sp[0].d, sp[sp.length - 1].d), [
+      { type: 'line', x0: sp[0].d, x1: sp[sp.length - 1].d, y0: 50, y1: 50, line: { color: DIM, dash: 'dash', width: 1 } },
+      { type: 'line', x0: sp[0].d, x1: sp[sp.length - 1].d, y0: activeMean, y1: activeMean, line: { color: CHAIR_GOLD, dash: 'dot', width: 1 } }
+    ]),
+    annotations: [
+      { x: sp[sp.length - 1].d, y: 50, text: 'Neutral (50)', showarrow: false, xanchor: 'left', font: { size: 10, color: DIM, family: MONO } },
+      { x: sp[sp.length - 1].d, y: activeMean, text: meanLabel + ' (' + activeMean.toFixed(1) + ')', showarrow: false, xanchor: 'left', font: { size: 10, color: CHAIR_GOLD, family: MONO } }
+    ]
+  });
+
+  Plotly.react('chart-detail', traces, layout, { responsive: true });
+}
+
+init().catch(function(err) {
+  document.getElementById('loading').innerHTML = '<span style="color:#ef4444">Error loading data: ' + err.message + '</span>';
+});
+</script>
+<script data-goatcounter="https://fedlock.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
