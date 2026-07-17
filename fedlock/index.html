@@ -281,6 +281,17 @@
 </div>
 <div class="tab-content" data-tab="methodology">
   <div class="prose">
+    <div style="background:#1a2332;border:1px solid #f39c12;border-radius:6px;padding:12px 16px;margin-bottom:1.5em;color:#f39c12;font-size:0.9em;line-height:1.5;">
+      <strong>&#9888; This write-up hasn't been fully updated for V3 yet.</strong>
+      The text below largely describes the original Gemini-Flash-era methodology.
+      The overall approach is unchanged, but this V3 dashboard differs in one main
+      way: the judge is now <strong>Llama 3.3 70B, an open-weights model</strong> —
+      chosen so the project can never again be broken by a vendor retiring its model
+      (the fate of the original judge). Secondary refinements: cross-source duplicate
+      speeches were removed from the corpus, and TrueSkill updates are no longer
+      scaled by judge confidence. Specific numbers below (tournament sizes, costs,
+      validation figures) may reflect the old run. A full rewrite is coming.
+    </div>
     <p style="color: var(--fg-dim); font-size: 0.85em; margin-bottom: 1.5em;">This methodology was written by Claude (Anthropic) with editing and direction from Joe Weisenthal.</p>
     <h2>What This Measures</h2>
     <p>Each point represents a single Federal Reserve speech scored on a hawkish&#8211;dovish spectrum. A score of 50 is neutral. Higher scores indicate a preference for tighter monetary policy; lower scores indicate a preference for accommodation.</p>
