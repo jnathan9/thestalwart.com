@@ -218,6 +218,7 @@
 <div class="tabs" id="tabs">
   <div class="tab active" data-tab="timeline">Timeline</div>
   <div class="tab" data-tab="rankings">Rankings</div>
+  <div class="tab" data-tab="latest">Latest Speeches</div>
   <div class="tab" data-tab="detail">Speaker Detail</div>
   <div class="tab" data-tab="methodology">Methodology</div>
 </div>
@@ -274,6 +275,15 @@
     This separates a speaker&#8217;s dispositional hawkishness from the era they spoke in.
   </div>
   <div id="chart-rankings" class="chart-container"></div>
+</div>
+<div class="tab-content" data-tab="latest">
+  <div class="prose" style="max-width:1150px;margin:0 auto;">
+    <p style="color:var(--fg-dim);font-size:12px;">The most recently delivered speeches in the tournament, newest first. Scores are hawkishness &mu; (50 = neutral); Adj is era-adjusted; n = comparisons. Titles link to the speech where a source URL is on file, otherwise to a targeted search.</p>
+    <div id="latest-container"></div>
+    <div style="text-align:center;margin:16px 0;">
+      <button id="latest-more" style="background:none;border:1px solid var(--border);color:var(--fg-muted);padding:8px 20px;border-radius:6px;cursor:pointer;font-family:var(--font-mono);font-size:12px;">Show 100 more</button>
+    </div>
+  </div>
 </div>
 <div class="tab-content" data-tab="detail">
   <div id="detail-stats" class="stats-card"></div>
@@ -567,8 +577,45 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-controls').forEach(c => c.style.display = c.dataset.for === tab ? '' : 'none');
   if (tab === 'timeline') renderTimeline();
   else if (tab === 'rankings') renderRankings();
+  else if (tab === 'latest') renderLatest();
   else if (tab === 'detail') renderDetail();
 }
+
+var LATEST_SHOWN = 100;
+function muColor(mu) {
+  var t = Math.max(0, Math.min(1, (mu - 35) / 30));
+  if (t < 0.5) { var p = t * 2; return 'rgb(' + Math.round(59 + 48 * p) + ',' + Math.round(130 - 10 * p) + ',' + Math.round(246 - 105 * p) + ')'; }
+  var p2 = (t - 0.5) * 2; return 'rgb(' + Math.round(107 + 132 * p2) + ',' + Math.round(120 - 52 * p2) + ',' + Math.round(141 - 73 * p2) + ')';
+}
+function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function speechLink(s) {
+  if (s.u) return s.u;
+  var q = '"' + (s.tt || '') + '" ' + s.a + (s.src ? ' site:' + s.src : '');
+  return 'https://www.google.com/search?q=' + encodeURIComponent(q);
+}
+function renderLatest() {
+  var rows = DATA.slice().sort(function(a, b) { return b._ts - a._ts; }).slice(0, LATEST_SHOWN);
+  var html = '<table><thead><tr><th>Date</th><th>Speaker</th><th>Title</th><th>Format</th><th style="text-align:right">&mu;</th><th style="text-align:right">Adj</th><th style="text-align:right">n</th></tr></thead><tbody>';
+  rows.forEach(function(s) {
+    var fmt = (s.st || '').replace('prepared_remarks', 'remarks').replace('press_conference', 'presser').replace('testimony', 'testimony');
+    var linkNote = s.u ? '' : ' title="No source URL on file — opens a search"';
+    html += '<tr>' +
+      '<td style="white-space:nowrap">' + esc(s.d) + '</td>' +
+      '<td style="white-space:nowrap">' + esc(s.a) + '</td>' +
+      '<td><a href="' + esc(speechLink(s)) + '" target="_blank" rel="noopener"' + linkNote + ' style="color:var(--accent-blue);text-decoration:none;">' + esc(s.tt || '(untitled)') + (s.u ? '' : ' ↗︎') + '</a></td>' +
+      '<td>' + esc(fmt) + '</td>' +
+      '<td style="text-align:right;font-family:var(--font-mono);color:' + muColor(s.m) + ';font-weight:600">' + s.m.toFixed(1) + '</td>' +
+      '<td style="text-align:right;font-family:var(--font-mono);color:var(--fg-muted)">' + s.ma.toFixed(1) + '</td>' +
+      '<td style="text-align:right;font-family:var(--font-mono);color:var(--fg-muted)">' + s.n + '</td>' +
+      '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('latest-container').innerHTML = html;
+  document.getElementById('latest-more').style.display = LATEST_SHOWN >= DATA.length ? 'none' : '';
+}
+document.getElementById('latest-more').addEventListener('click', function() {
+  LATEST_SHOWN += 100; renderLatest();
+});
 
 function baseLayout(title, extra) {
   return Object.assign({
