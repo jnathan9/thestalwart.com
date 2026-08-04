@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FedLock V3 (Experimental): FOMC Hawkishness</title>
+<title>FedLock: FOMC Hawkishness</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -192,12 +192,13 @@
 
 <div class="header">
   <div class="header-top">
-    <h1>FedLock <span style="color:#f39c12;font-size:0.55em;">V3 · experimental</span></h1>
-  <div style="background:#1a2332;border:1px solid #f39c12;border-radius:6px;margin:12px auto;max-width:1100px;padding:10px 16px;color:#f39c12;font-size:14px;">
-    <strong>V3 preview (experimental).</strong> New open-weights judge (Llama 3.3 70B),
-    deduplicated corpus, revised TrueSkill statistics. Runs in parallel with the
-    <a href="https://jnathan9.github.io/fedlock/" style="color:#f39c12;text-decoration:underline;">main dashboard</a>,
-    which remains the official version until V3 is formally adopted.
+    <h1>FedLock <span style="color:#f39c12;font-size:0.55em;">V3</span></h1>
+  <div style="background:#1a2332;border:1px solid #2a3f55;border-radius:6px;margin:12px auto;max-width:1100px;padding:10px 16px;color:#a8b8cc;font-size:14px;">
+    <strong>Updated August 2026.</strong> This dashboard now runs V3: an open-weights
+    judge (Llama 3.3 70B), a deduplicated corpus, and revised TrueSkill statistics.
+    The original Gemini-Flash-era dashboard is preserved at
+    <a href="https://jnathan9.github.io/fedlock/v2/" style="color:#a8b8cc;text-decoration:underline;">/fedlock/v2/</a>.
+    See <a href="#" onclick="document.querySelector('[data-tab=methodology]').click(); return false;" style="color:#a8b8cc;text-decoration:underline;">Methodology</a> for what changed.
   </div>
   </div>
   <div class="header-subtitle">
@@ -291,21 +292,26 @@
 </div>
 <div class="tab-content" data-tab="methodology">
   <div class="prose">
-    <div style="background:#1a2332;border:1px solid #f39c12;border-radius:6px;padding:12px 16px;margin-bottom:1.5em;color:#f39c12;font-size:0.9em;line-height:1.5;">
-      <strong>&#9888; This write-up hasn't been fully updated for V3 yet.</strong>
-      The text below largely describes the original Gemini-Flash-era methodology.
-      The overall approach is unchanged, but this V3 dashboard differs in one main
-      way: the judge is now <strong>Llama 3.3 70B, an open-weights model</strong> —
-      chosen so the project can never again be broken by a vendor retiring its model
-      (the fate of the original judge). Secondary refinements: cross-source duplicate
-      speeches were removed from the corpus, and TrueSkill updates are no longer
-      scaled by judge confidence. Specific numbers below (tournament sizes, costs,
-      validation figures) may reflect the old run. A full rewrite is coming.
+    <div style="background:#1a2332;border:1px solid #2a3f55;border-radius:6px;padding:12px 16px;margin-bottom:1.5em;color:#a8b8cc;font-size:0.9em;line-height:1.5;">
+      <strong>Update, August 2026: FedLock now runs V3.</strong>
+      In August 2026 this main dashboard switched from the original tournament to V3.
+      The biggest change is the judge model: scores now come from
+      <strong>Llama 3.3 70B, an open-weights model</strong> — chosen so the project
+      can never again be broken by a vendor retiring its model, which is exactly what
+      happened to the original judge (Gemini 2.0 Flash, retired May 2026). V3 also
+      removed cross-source duplicate speeches from the corpus and stopped scaling
+      TrueSkill updates by judge confidence. On external validation benchmarks
+      (FOMC dissent votes, hawkish-dictionary scores), V3 outperforms the original
+      run, and the two agree closely on speech rankings (&#961;=0.82).
+      The frozen original dashboard is preserved at
+      <a href="https://jnathan9.github.io/fedlock/v2/" style="color:#a8b8cc;text-decoration:underline;">/fedlock/v2/</a>.
+      Parts of the write-up below still describe the Gemini-Flash-era run; specific
+      numbers (tournament sizes, costs, validation figures) may reflect it.
     </div>
     <p style="color: var(--fg-dim); font-size: 0.85em; margin-bottom: 1.5em;">This methodology was written by Claude (Anthropic) with editing and direction from Joe Weisenthal.</p>
     <h2>What This Measures</h2>
     <p>Each point represents a single Federal Reserve speech scored on a hawkish&#8211;dovish spectrum. A score of 50 is neutral. Higher scores indicate a preference for tighter monetary policy; lower scores indicate a preference for accommodation.</p>
-    <p>The scores are not based on keyword counts, dictionary methods, or pre-trained classifiers. They come from a pairwise tournament: Gemini 2.0 Flash reads two anonymized speeches side by side and decides which takes the more hawkish position. After 67,000 of these head-to-head comparisons across 4,479 policy speeches, a TrueSkill rating engine produces a continuous score for each speech. That works out to roughly 30 comparisons per speech on average, which is well past the point where ratings stabilize. By the end of the tournament, every speech had converged to a confidence interval (&#963;) below 2.0 on a 100-point scale, meaning additional comparisons would not meaningfully change the rankings.</p>
+    <p>The scores are not based on keyword counts, dictionary methods, or pre-trained classifiers. They come from a pairwise tournament: the judge model (Llama 3.3 70B) reads two anonymized speeches side by side and decides which takes the more hawkish position. After roughly 60,000 of these head-to-head comparisons across nearly 4,000 policy speeches, a TrueSkill rating engine produces a continuous score for each speech. That works out to roughly 30 comparisons per speech on average, which is well past the point where ratings stabilize. By the end of the tournament, every speech had converged to a confidence interval (&#963;) below 2.0 on a 100-point scale, meaning additional comparisons would not meaningfully change the rankings.</p>
 
     <h2>How the Comparisons Work</h2>
     <p>Each comparison presents two speeches with speaker identities stripped out. Names, titles, and structural labels (e.g., &#8220;CHAIR POWELL.&#8221;) are replaced with generic tokens so the judge cannot identify who is speaking. This matters because the model has been trained on vast amounts of text about the Fed, and it &#8220;knows&#8221; who the hawks and doves are. Without anonymization, it could let that prior knowledge influence its judgments rather than reading the text on its merits. (We tested this directly. See <a href="#name-contamination" style="color: var(--accent-blue);">Name Contamination</a> below.)</p>
@@ -313,8 +319,8 @@
     <img src="https://jnathan9.github.io/fedlock/pairwise_comparison.png" alt="How a pairwise comparison is presented to the judge">
     <p class="chart-caption">Each comparison presents two redacted excerpts with macroeconomic context. The judge decides which speaker takes the more hawkish stance relative to conditions at the time.</p>
 
-    <h2>Why Gemini Flash?</h2>
-    <p>The judge model is Llama 3.3 70B, an open-weights model that cannot be discontinued by a vendor, accessed via the <a href="https://openrouter.ai/" style="color: var(--accent-blue);">OpenRouter</a> API. The entire tournament cost approximately $25. Using a fast, inexpensive model demonstrates that the LLM-as-judge technique is accessible and reproducible. You don&#8217;t need expensive frontier models to produce meaningful sentiment rankings. Parallel tournaments using Claude Sonnet and DeepSeek V3 produced closely aligned results, confirming that the signal comes from the method, not the model.</p>
+    <h2>Why Llama 3.3 70B?</h2>
+    <p>The judge model is Llama 3.3 70B, an open-weights model that cannot be discontinued by a vendor, accessed via the <a href="https://openrouter.ai/" style="color: var(--accent-blue);">OpenRouter</a> API. The entire tournament cost approximately $18. Using a fast, inexpensive model demonstrates that the LLM-as-judge technique is accessible and reproducible. You don&#8217;t need expensive frontier models to produce meaningful sentiment rankings. Parallel tournaments using Claude Sonnet and DeepSeek V3 produced closely aligned results, confirming that the signal comes from the method, not the model.</p>
 
     <h2>Why Pairwise?</h2>
     <p>Why not just ask the model to score each speech directly on a 1&#8211;100 scale? We tried that too. The same model scored the same speeches both ways. The difference is striking:</p>
@@ -329,10 +335,10 @@
     <p>Forced comparison sidesteps the calibration problem entirely. The model doesn&#8217;t need to assign a number. It just needs to decide which of two speeches is more hawkish. That&#8217;s a much easier judgment call, and TrueSkill aggregates those binary decisions into a continuous rating.</p>
 
     <h2>The Rating System</h2>
-    <p>The tournament uses Microsoft&#8217;s TrueSkill algorithm. Each speech starts at &#956;=50 with high uncertainty (&#963;=8.33). As it wins or loses comparisons, its rating updates. Pairs are selected through Swiss-style matching, uncertainty-targeted sampling, and random draws for efficient convergence. At 67,000 comparisons (averaging 30 per speech), all speeches converged to &#963;&lt;2.0.</p>
+    <p>The tournament uses Microsoft&#8217;s TrueSkill algorithm. Each speech starts at &#956;=50 with high uncertainty (&#963;=8.33). As it wins or loses comparisons, its rating updates. Pairs are selected through Swiss-style matching, uncertainty-targeted sampling, and random draws for efficient convergence. At roughly 60,000 comparisons (averaging 30 per speech), speeches converge to &#963;&lt;2.0.</p>
 
     <h2>Corpus</h2>
-    <p>The corpus contains 4,479 policy-relevant speeches by 69 FOMC members from 1995 to 2026. Sources include federalreserve.gov, FRASER, FOMC press conference transcripts, and regional Federal Reserve bank websites. Non-policy content (commencement addresses, fintech talks, bank supervision, community development) is filtered out via a two-stage classifier: an initial LLM pass identifies policy-relevant speeches, followed by a stricter re-review that removes speeches whose primary purpose is not communicating a monetary policy view.</p>
+    <p>The corpus contains roughly 4,000 policy-relevant speeches by FOMC members from 1995 to the present, deduplicated across sources and growing as new speeches are ingested daily. Sources include federalreserve.gov, FRASER, FOMC press conference transcripts, and regional Federal Reserve bank websites. Non-policy content (commencement addresses, fintech talks, bank supervision, community development) is filtered out via a two-stage classifier: an initial LLM pass identifies policy-relevant speeches, followed by a stricter re-review that removes speeches whose primary purpose is not communicating a monetary policy view.</p>
 
     <h2>Era Adjustment</h2>
     <p>Raw scores conflate dispositional hawkishness with the era a speaker served in. The Rankings and Speaker Detail tabs use era-adjusted scores: for each speech, <em>adjusted = raw &#8722; quarterly mean + 50</em>. This re-centers 50 to &#8220;neutral relative to contemporaries.&#8221; The Timeline tab retains raw scores to preserve the visible dynamics of hawkish and dovish eras.</p>
