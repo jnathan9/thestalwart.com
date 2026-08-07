@@ -28,11 +28,28 @@ Nothing here is from him or should be attributed to him.</i></p>
 
 <hr>
 
-<p><a href="/">&#8592; back to Joe's home page</a></p>
+<p><a href="/">&#8592; back to Joe's home page</a> <span id="health" style="float:right"><i>checking robot&hellip;</i></span></p>
 
 <script>
 var ENDPOINT = "https://jnathan--stalwart-voice-serve-chat-web.modal.run";
 var history = [];
+
+// page v3 — on-load health check so problems name themselves
+(function () {
+  var h = document.getElementById("health");
+  fetch(ENDPOINT, { method: "GET" })
+    .then(function (r) { return r.json(); })
+    .then(function () { h.innerHTML = "<i>robot: reachable (v3)</i>"; })
+    .catch(function (err) { h.innerHTML = "<i>robot: UNREACHABLE (v3) &mdash; " + err.name + ": " + err.message + "</i>"; });
+})();
+
+// Enter sends; Shift+Enter makes a new line
+document.getElementById("msg").addEventListener("keydown", function (e) {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    document.getElementById("chatform").dispatchEvent(new Event("submit", { cancelable: true }));
+  }
+});
 
 function addLine(who, text) {
   var p = document.createElement("p");
