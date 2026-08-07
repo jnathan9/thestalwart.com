@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>thestAIwart</title>
+</head>
+<body bgcolor="#DDEEDD">
+
+<h2 align="center">thestAIwart</h2>
+
+<p align="center"><i>A robot trained on 18 years of my tweets. Ask it anything.<br>
+It only speaks in tweets. It is not me. It is, arguably, more me than me.</i></p>
+
+<hr>
+
+<div id="chatlog"></div>
+
+<form id="chatform">
+<p>
+<input type="text" id="msg" size="60" maxlength="500" autocomplete="off" autofocus>
+<input type="submit" value="Ask">
+</p>
+</form>
+
+<p id="status"><i></i></p>
+
+<hr>
+
+<p><a href="/">&#8592; back to Joe's home page</a></p>
+
+<script>
+var ENDPOINT = "__MODAL_ENDPOINT_URL__";
+var history = [];
+
+function addLine(who, text) {
+  var p = document.createElement("p");
+  var b = document.createElement("b");
+  b.textContent = who + ": ";
+  p.appendChild(b);
+  p.appendChild(document.createTextNode(text));
+  document.getElementById("chatlog").appendChild(p);
+  p.scrollIntoView();
+}
+
+document.getElementById("chatform").onsubmit = function (e) {
+  e.preventDefault();
+  var box = document.getElementById("msg");
+  var msg = box.value.trim();
+  if (!msg) return;
+  box.value = "";
+  addLine("You", msg);
+  var status = document.getElementById("status");
+  if (ENDPOINT.indexOf("__") === 0) {
+    status.innerHTML = "<i>the robot isn't plugged in yet &mdash; check back soon</i>";
+    return;
+  }
+  status.innerHTML = "<i>thinking&hellip; (if the robot was asleep, waking it up can take a minute)</i>";
+
+  fetch(ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: msg, history: history })
+  })
+  .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+  .then(function (data) {
+    status.innerHTML = "";
+    addLine("thestAIwart", data.reply);
+    history.push({ role: "user", content: msg });
+    history.push({ role: "assistant", content: data.reply });
+    history = history.slice(-8);
+  })
+  .catch(function (err) {
+    status.innerHTML = "<i>something broke: " + err.message + " &mdash; try again in a minute</i>";
+  });
+};
+</script>
+
+</body>
+</html>
