@@ -75,22 +75,30 @@ document.getElementById("chatform").onsubmit = function (e) {
   }
   status.innerHTML = "<i>thinking&hellip; (if the robot was asleep, waking it up can take a minute)</i>";
 
-  fetch(ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message: msg, history: history })
-  })
-  .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-  .then(function (data) {
-    status.innerHTML = "";
-    addLine("thestAIwart", data.reply);
-    history.push({ role: "user", content: msg });
-    history.push({ role: "assistant", content: data.reply });
-    history = history.slice(-8);
-  })
-  .catch(function (err) {
-    status.innerHTML = "<i>something broke: " + err.message + " &mdash; try again in a minute</i>";
-  });
+  function attempt(triesLeft) {
+    fetch(ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: msg, history: history })
+    })
+    .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(function (data) {
+      status.innerHTML = "";
+      addLine("thestAIwart", data.reply);
+      history.push({ role: "user", content: msg });
+      history.push({ role: "assistant", content: data.reply });
+      history = history.slice(-8);
+    })
+    .catch(function (err) {
+      if (triesLeft > 0) {
+        status.innerHTML = "<i>connection hiccup &mdash; retrying&hellip;</i>";
+        setTimeout(function () { attempt(triesLeft - 1); }, 4000);
+      } else {
+        status.innerHTML = "<i>something broke: " + err.message + " &mdash; try again in a minute</i>";
+      }
+    });
+  }
+  attempt(2);
 };
 </script>
 
