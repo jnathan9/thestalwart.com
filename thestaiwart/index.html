@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -32,15 +32,15 @@ Nothing here is from him or should be attributed to him.</i></p>
 
 <script>
 var ENDPOINT = "https://jnathan--stalwart-voice-serve-chat-web.modal.run";
-var history = [];
+var chatHistory = [];
 
-// page v3 — on-load health check so problems name themselves
+// page v4 - on-load health check so problems name themselves
 (function () {
   var h = document.getElementById("health");
   fetch(ENDPOINT, { method: "GET" })
     .then(function (r) { return r.json(); })
-    .then(function () { h.innerHTML = "<i>robot: reachable (v3)</i>"; })
-    .catch(function (err) { h.innerHTML = "<i>robot: UNREACHABLE (v3) &mdash; " + err.name + ": " + err.message + "</i>"; });
+    .then(function () { h.innerHTML = "<i>robot: reachable (v4)</i>"; })
+    .catch(function (err) { h.innerHTML = "<i>robot: UNreachable (v4) &mdash; " + err.name + ": " + err.message + "</i>"; });
 })();
 
 // Enter sends; Shift+Enter makes a new line
@@ -79,15 +79,15 @@ document.getElementById("chatform").onsubmit = function (e) {
     fetch(ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: msg, history: history })
+      body: JSON.stringify({ message: msg, history: chatHistory })
     })
     .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
     .then(function (data) {
       status.innerHTML = "";
       addLine("thestAIwart", data.reply);
-      history.push({ role: "user", content: msg });
-      history.push({ role: "assistant", content: data.reply });
-      history = history.slice(-8);
+      chatHistory.push({ role: "user", content: msg });
+      chatHistory.push({ role: "assistant", content: data.reply });
+      chatHistory = chatHistory.slice(-8);
     })
     .catch(function (err) {
       if (triesLeft > 0) {
