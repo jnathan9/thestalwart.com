@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Who Are Your Neighbors</title>
+<style>
+/* The rest of the site is bare HTML. Everything here is either the two colour
+   schemes or the parts a picture needs: the triangle, the map, the list. */
+:root {
+  --bg: #DDEEDD;
+  --fg: #000000;
+  --dim: #4a5a4a;
+  --rule: #9ab89a;
+  --panel: #eaf4ea;
+  --link: #0000ee;
+  --mark: #b03000;      /* neighbours */
+  --mark-2: #7a4b00;    /* the person you are looking from */
+  --keep: #005f8a;      /* near you wherever the dot goes */
+  --faint: #8fa88f;     /* everyone else */
+  --warn-bg: #fff3cd;
+  --warn-fg: #4a3b00;
+  --warn-rule: #b8940a;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #10160f;
+    --fg: #e6ece5;
+    --dim: #9fb09c;
+    --rule: #33452f;
+    --panel: #18211a;
+    --link: #8ab4f8;
+    --mark: #ff9166;
+    --mark-2: #ffd479;
+    --keep: #5ec8f0;
+    --faint: #4e6049;
+    --warn-bg: #2a2410;
+    --warn-fg: #f0dfa0;
+    --warn-rule: #7a6512;
+  }
+}
+body { background: var(--bg); color: var(--fg); margin: 0 auto; padding: 0 14px 40px; max-width: 940px; }
+a { color: var(--link); }
+hr { border: 0; border-top: 1px solid var(--rule); margin: 22px 0; }
+h2, h3 { font-weight: bold; }
+p, li { line-height: 1.5; }
+.prose { max-width: 640px; }
+.dim { color: var(--dim); }
+small { color: var(--dim); }
+
+/* honest, visible, and out of the way: one slim line, not a box in the hero slot.
+   Both states of the line use the same geometry. Only the colour changes, so a
+   file that turns out to be real does not silently lose the slot it was in. */
+.warn {
+  background: var(--warn-bg); color: var(--warn-fg);
+  border-left: 4px solid var(--warn-rule);
+  padding: 4px 10px; margin: 8px 0 10px; font-size: 92%;
+}
+/* the same line, when it is stating where the data came from rather than
+   warning about it: it should read as a caption, not an alarm */
+.warn.calm { background: var(--panel); color: var(--dim); border-left-color: var(--rule); }
+[hidden] { display: none !important; }
+.hint { font-size: 92%; color: var(--dim); margin: 0 0 6px; }
+
+/* the file drop will live here one day. It does nothing, and must not look as
+   though it might. No handler is attached to it anywhere in this file. */
+.dropbox {
+  border: 2px dashed var(--rule); color: var(--dim); background: transparent;
+  padding: 18px 14px; text-align: center; margin: 12px 0; cursor: not-allowed;
+  pointer-events: none; user-select: none;
+}
+.dropbox button[disabled] {
+  font: inherit; font-size: 92%; margin-top: 8px; padding: 3px 10px;
+  color: var(--dim); background: var(--panel); border: 1px solid var(--rule);
+}
+ol.steps > li { margin-bottom: 10px; }
+
+/* ---- the map section ---- */
+.controls { margin: 12px 0; }
+.controls select { font: inherit; padding: 2px; }
+.presets button {
+  font: inherit; font-size: 90%; margin: 0 4px 4px 0; padding: 3px 9px;
+  background: var(--panel); color: var(--fg); border: 1px solid var(--rule); cursor: pointer;
+}
+.presets button:hover { border-color: var(--fg); }
+
+.cols { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
+.col-controls { flex: 1 1 320px; min-width: 300px; }
+.col-map { flex: 1 1 380px; min-width: 320px; }
+
+#triangle { width: 300px; max-width: 100%; touch-action: none; display: block; cursor: pointer; }
+#triangle:focus { outline: 2px solid var(--link); outline-offset: 2px; }
+.weights { font-size: 95%; margin: 4px 0 0; }
+
+#maprap { position: relative; }
+#map { width: 100%; height: 440px; display: block; background: var(--panel); border: 1px solid var(--rule); touch-action: none; }
+#tip {
+  position: absolute; pointer-events: none; display: none;
+  background: var(--bg); color: var(--fg); border: 1px solid var(--rule);
+  padding: 5px 8px; font-size: 85%; max-width: 240px; line-height: 1.35;
+}
+
+table.nb { border-collapse: collapse; width: 100%; font-size: 95%; }
+table.nb th { text-align: left; font-weight: bold; border-bottom: 1px solid var(--rule); padding: 3px 6px 3px 0; }
+table.nb td { padding: 2px 6px 2px 0; border-bottom: 1px solid var(--panel); }
+table.nb tr.hot td { background: var(--panel); }
+table.nb td.r { text-align: right; color: var(--dim); width: 2.2em; }
+table.nb td.s { text-align: right; font-family: ui-monospace, "Courier New", monospace; width: 4em; }
+table.nb td.k { width: 1.4em; color: var(--keep); font-weight: bold; }
+.keep { color: var(--keep); font-weight: bold; }
+.legend { font-size: 88%; color: var(--dim); margin-top: 8px; line-height: 1.6; }
+.legend span { white-space: nowrap; margin-right: 14px; }
+#err { color: var(--mark); }
+</style>
+</head>
+<body>
+
+<h2 align="center">Who Are Your Neighbors</h2>
+
+<p align="center"><i>A map of people who write like you.<br>
+You get to see who is near you. Nobody, including you, gets told why.</i></p>
+
+<!-- Written from the file, never from memory. What this line says depends on
+     is_sample_data: a warning when the numbers are invented, a plain statement
+     of where the data came from when they are not. It stays empty until the
+     file has actually been read, so the page can never make a claim about data
+     it has not seen. -->
+<p id="dataline" hidden></p>
+
+<div class="controls">
+  <label for="who">Looking from: </label>
+  <select id="who"></select>
+</div>
+
+<div class="cols">
+
+  <div class="col-controls">
+    <p class="hint">Drag the dot. The nearer it sits to a corner, the more that
+    corner counts. The list re-sorts as you drag.</p>
+    <svg id="triangle" viewBox="0 0 300 250" tabindex="0" role="slider"
+         aria-label="Weighting between topic, worldview and style"
+         aria-valuetext="equal weighting"></svg>
+    <p class="weights" id="weights">&nbsp;</p>
+    <p class="presets">
+      <button data-w="1,0,0">Topic</button><button data-w="0,1,0">Worldview</button><button data-w="0,0,1">Style</button><button data-w="0.3333,0.3333,0.3334">Even</button>
+    </p>
+    <table class="nb">
+      <thead><tr><th></th><th></th><th id="nbhead">Nearest</th><th class="s" style="text-align:right">score</th></tr></thead>
+      <tbody id="nblist"></tbody>
+    </table>
+    <p id="err"></p>
+  </div>
+
+  <div class="col-map">
+    <!-- how many people the arrangement was worked out from decides whether it
+         is worth reading as distance at all. Written from the count in the
+         file, and gone once there are enough people. -->
+    <p id="provline" hidden></p>
+    <p id="invline" class="dim">&nbsp;</p>
+    <div id="maprap">
+      <canvas id="map"></canvas>
+      <div id="tip"></div>
+    </div>
+    <!-- built from the file: which marks are worth explaining depends on how
+         many people carry them -->
+    <p class="legend" id="legend">&nbsp;</p>
+    <p class="legend"><b>Topic</b> is what a person keeps coming back to.
+    <b>Worldview</b> is what they think and how they think things connect.
+    <b>Style</b> is temperament, and the kinds of argument they are drawn to.</p>
+    <p class="legend" id="motionnote">&nbsp;</p>
+    <p class="legend">Score is standardised, not a percentage: 0 is how close an
+    average pair of people are, and 1.0 means one standard deviation closer than
+    average. Negative means further apart than average. A rank is only ever a
+    rank &mdash; there is no explanation attached to it, and there will not
+    be one.</p>
+  </div>
+
+</div>
+
+<hr>
+
+<h3>How you would get on this map</h3>
+
+<div class="prose">
+
+<p><b>You cannot yet.</b> Nothing described in this section is built. There is no
+way to contribute today, and the steps below are what the process is intended to
+be, not what it does. <span id="cohortline"></span></p>
+
+<ol class="steps">
+<li><b>Ask X for your archive.</b> It is a setting in your account. They take
+about a day, then email you a link to download it.</li>
+
+<li><b>Drop the <code>tweets.js</code> file from it onto the page.</b> The file
+itself will never be uploaded. It will be opened and read inside your own
+browser, on your own machine.</li>
+
+<li><b>Your browser will do the cutting down.</b> Reposts of other people's
+writing will go. So will posts under five words, and posts that are nothing but a
+link. Where you replied to yourself over and over, the chain will be stitched
+back into one piece of writing. From what is left, about 400 pieces will be
+picked, spread across the years. Only that sample and your handle will leave your
+machine.</li>
+
+<li><b>A fixed model will read the sample and write five short descriptions of
+you.</b> Those descriptions, and the numbers made from them, will be kept.
+<b>The sampled posts will be deleted at that point.</b> They are not stored, not
+archived, and not held for later.</li>
+
+<li><b>You will prove the account is yours by posting in public.</b> You will be
+given a one-time code, and asked to post a fixed phrase containing it from the
+account. Then you paste the link to that post back here. That is the whole
+check.</li>
+
+<li><b>Until that check passes, you will not be on the map.</b> An unverified
+profile is not shown.</li>
+</ol>
+
+<div class="dropbox" aria-hidden="true">
+  Drop <code>tweets.js</code> here<br>
+  <button type="button" disabled>Not open yet</button>
+</div>
+
+<p><b>There is no sign-in, ever.</b> The site will not ask you for a password,
+and there is nothing to log into. Proving the account is yours is a public post
+from it, which is something only the account holder can do. That also means the
+site never holds a credential of yours that could later leak.</p>
+
+<p><b>Your posts are deleted, and that is not reversible.</b> Keeping only the
+descriptions and the numbers is the point of the design, but it has a real cost:
+if the instructions given to the model are ever changed, everyone has to
+contribute again. There is nothing left to quietly re-run, because the inputs are
+gone. That is the trade, stated plainly.</p>
+
+<!-- static text is true whichever way the file goes; the script replaces it
+     with the actual counts once the file has been read -->
+<p id="seedpara">Some of the profiles on the map above were seeded rather than
+contributed, and are drawn as hollow circles. Nobody posted a code for those, so
+nobody has shown that the account belongs to whoever the profile describes. They
+are marked differently for that reason and for no other.</p>
+
+<!-- static on purpose: the script rewrites #seedpara from the file's counts,
+     and this must survive that regardless of what the file says -->
+<p id="optout">The seeded profiles come from the
+<a href="https://www.community-archive.org/">Community Archive</a>, where those
+people published their whole posting history in the open for anyone to read and
+analyse. That is what it is there for. Being named on someone else's map of who
+resembles whom is a further step, and nobody on this page agreed to it.
+<strong>So if you are on this map and would rather not be, say so and you will be
+removed.</strong> No reason needed and none will be asked for.</p>
+
+</div>
+
+<hr>
+
+<h3 id="built">How the map is built</h3>
+
+<div class="prose">
+
+<p>You ask X for a copy of your archive. A few days later they send you a file.
+You drop that file onto this page. Nothing leaves your computer when you do that
+&mdash; the file is opened and read inside your own browser.</p>
+
+<p>Most of the archive is then thrown away. Reposts of other people's writing go,
+because they are not your words. Posts under five words go. Posts that are
+nothing but a link go. Where you replied to yourself over and over, that chain is
+stitched back into a single piece of writing, because that is how it was meant to
+be read. From what survives, about 400 pieces are picked, spread evenly across
+the years, so that one loud month cannot speak for you.</p>
+
+<p>Those 400 pieces are handed to a language model &mdash; a program that reads
+text and writes text back. It is the same program every time, given the same
+instructions every time, so that two people are described on the same terms. It
+writes five short descriptions of you:</p>
+
+<ul>
+<li>what you keep returning to</li>
+<li>what you actually think</li>
+<li>how you think the world works &mdash; what causes what</li>
+<li>your temperament</li>
+<li>which ways of arguing you warm to, and which you cannot stand</li>
+</ul>
+
+<p>Each of those five descriptions is then turned into a long list of numbers.
+That conversion is called an <i>embedding</i>. The arrangement is built so that
+two pieces of writing that say similar things come out with similar numbers.
+That is the entire trick: similar writing, similar numbers. Once you have
+numbers, closeness is just arithmetic.</p>
+
+<p>Then your posts are deleted. What is kept is the five descriptions and the
+five lists of numbers. The archive is gone, and it cannot be reconstructed from
+what is kept. That is a design choice with a cost attached: if the instructions
+to the model are ever improved, everyone has to contribute again, because there
+is nothing left to re-read.</p>
+
+<p>People whose numbers land close together are neighbours. You see their names,
+their rank, and a score. You never see the descriptions written about them, and
+they never see the ones written about you.</p>
+
+<p>The picture at the top of this page is worked out three times over: once for
+each corner of the triangle. Those three arrangements are settled in advance and
+then left alone. As you move the dot, each person slides between their three
+places, in proportion to how much each corner counts at that moment. Nothing is
+being recalculated while you drag &mdash; you are looking at a blend of three
+fixed pictures. That is why points glide rather than jump, and why dragging back
+puts everybody exactly where they were.</p>
+
+<h4>Where this actually stands</h4>
+
+<p>It does not work yet, and it might not. Two questions have to be answered with
+numbers before any of this is worth showing:</p>
+
+<p><b>Does the same archive describe the same person twice?</b> The model is run
+several times over the same posts. If the five descriptions come out meaningfully
+different each time, then the description is about the run, not about you, and
+everything downstream is noise. There is a threshold this has to clear, and it
+has not been measured yet.</p>
+
+<p><b>Do the five descriptions say five different things?</b> If what you return
+to, what you think, and how you argue all turn out to be the same measurement
+wearing three hats, then the triangle at the top of this page is decoration and should be removed
+rather than dressed up. Also not measured yet.</p>
+
+<p>Until both are answered, there is no map, and the honest thing to do is say so
+at the top of the page rather than at the bottom.</p>
+
+</div>
+
+<hr>
+
+<p><a href="/">&#8592; back to Joe's home page</a></p>
+
+<script>
+(function () {
+"use strict";
+
+var AXES = ["TOPIC", "WORLDVIEW", "STYLE"];
+var AXIS_LABEL = { TOPIC: "Topic", WORLDVIEW: "Worldview", STYLE: "Style" };
+var TOP_N = 20;         // the longest the neighbour list is ever allowed to be
+var GRID = 24;          // resolution of the sweep that finds the always-near set
+
+// How many people it takes before the arrangement is worth reading as distance.
+// Every score in the file is standardised across the pairs in the file, and
+// there are only n(n-1)/2 of those: at nine people that is thirty-six, and a
+// standard deviation taken over thirty-six numbers moves on very little. The
+// map will still draw, and it will still look convincing, which is exactly why
+// the page has to say so.
+var PROVISIONAL_BELOW = 50;
+var SETTLED_AT = 150;   // the cohort size the design is actually aimed at
+
+// The always-near mark says: this person does not drop out of your list no
+// matter where the dot goes. That is only information if people *can* drop out
+// of the list. When the list holds everyone, or nearly everyone, marking is
+// vacuous — and vacuous here is worse than absent, because this is the mark the
+// whole page is built around. It needs a real pool of people outside the list.
+var INVARIANT_MARGIN = 5;
+
+var D = null;           // the loaded document
+var N = 0;
+var LIST_N = 0;         // rows the list actually shows: min(TOP_N, everyone else)
+var invariantUseful = false;
+var seeds = 0, contributed = 0;
+var seedsDominant = false;   // seeded is the norm here, not the exception
+var axisViews = {};     // axis -> [view names], read from the file, never hardcoded
+var focus = 0;
+var W = [1 / 3, 1 / 3, 1 / 3];
+var axisScore = null;   // axis -> Float64Array over people, relative to focus
+var score = null;       // current combined score per person
+var order = [];         // people sorted by score, focus removed
+var rankOf = null;      // person -> 1-based rank, 0 if outside the list
+var invariant = null;   // Uint8Array flag: in the list everywhere in the triangle
+var invariantCount = 0;
+var hot = -1;           // hovered person
+var corners = null;     // one settled layout per axis, or null if the file has none
+var frame = null;       // fixed canvas transform: {s, ox, oy}
+var rows = [];          // the 20 reused table rows; declared here, with the rest
+                        // of the state, because start() must never depend on how
+                        // far down this file execution happens to have got
+
+var svg = document.getElementById("triangle");
+var canvas = document.getElementById("map");
+var ctx = canvas.getContext("2d");
+var tip = document.getElementById("tip");
+var pts = [];           // drawn screen coords, for hit testing
+
+// triangle geometry, in the svg's own units. Equilateral, and inset far enough
+// that the corner names do not run off the edge of the box.
+var V = [[150, 28], [40, 219], [260, 219]];   // TOPIC, WORLDVIEW, STYLE
+
+// ---------------------------------------------------------------- colours
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+var C = {};
+function readColours() {
+  C.fg = cssVar("--fg"); C.dim = cssVar("--dim"); C.rule = cssVar("--rule");
+  C.panel = cssVar("--panel"); C.mark = cssVar("--mark"); C.mark2 = cssVar("--mark-2");
+  C.keep = cssVar("--keep"); C.faint = cssVar("--faint"); C.bg = cssVar("--bg");
+}
+
+// ---------------------------------------------------------------- load
+fetch("data.json", { cache: "no-cache" })
+  .then(function (r) {
+    if (!r.ok) throw new Error("data.json returned " + r.status);
+    return r.json();
+  })
+  .then(start)
+  .catch(function (e) {
+    document.getElementById("err").textContent =
+      "Could not load data.json (" + e.message + "). Opening this file directly " +
+      "from disk will not work, because browsers block reading files that way. " +
+      "Serve the folder over http instead: python -m http.server 8000";
+  });
+
+function start(doc) {
+  D = doc;
+  N = D.people.length;
+  AXES.forEach(function (a) { axisViews[a] = []; });
+  D.views.forEach(function (v) {
+    var a = D.view_to_axis[v];
+    if (axisViews[a]) axisViews[a].push(v);
+  });
+
+  // Everything about how the page describes itself is decided here, from the
+  // file, before anything is drawn. Nothing downstream carries a fixed count.
+  LIST_N = Math.max(1, Math.min(TOP_N, N - 1));
+  invariantUseful = (N - 1 - LIST_N) >= INVARIANT_MARGIN;
+  seeds = 0;
+  for (var s = 0; s < N; s++) if (D.people[s].tier === "seed") seeds++;
+  contributed = N - seeds;
+  seedsDominant = seeds > contributed;
+
+  corners = readCornerLayouts();
+  describeMotion();
+  describeData();
+  describeProvisional();
+  describeCohort();
+  describeLegend();
+  document.getElementById("nbhead").textContent =
+    LIST_N >= N - 1 ? "Everyone, ranked" : "Nearest " + LIST_N;
+
+  var sel = document.getElementById("who");
+  D.people.forEach(function (p, i) {
+    var o = document.createElement("option");
+    o.value = String(i);
+    o.textContent = "@" + p.handle + tierSuffix(p);
+    sel.appendChild(o);
+  });
+  sel.value = "0";
+  sel.addEventListener("change", function () { setFocus(parseInt(sel.value, 10)); });
+
+  readColours();
+  if (window.matchMedia) {
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    var onScheme = function () { readColours(); drawTriangle(); drawMap(); };
+    if (mq.addEventListener) mq.addEventListener("change", onScheme);
+    else if (mq.addListener) mq.addListener(onScheme);
+  }
+
+  buildList();
+  sizeCanvas();
+  wireTriangle();
+  wirePresets();
+  wireMapHover();
+  window.addEventListener("resize", function () { sizeCanvas(); drawMap(); });
+
+  setFocus(0);
+}
+
+// ------------------------------------------------------- what the page claims
+// Everything in this section is derived from the file that was actually loaded.
+// No sentence here states a count, a provenance, or a confidence that is not in
+// front of it. The point is that swapping the file swaps the claims with it: a
+// page that says the numbers are invented must stop saying so the moment they
+// are not, and must start saying so again if sample data ever comes back.
+
+function esc(t) {
+  return String(t).replace(/[&<>"]/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+  });
+}
+function count(n, one, many) { return n + " " + (n === 1 ? one : many); }
+
+var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function shortDate(iso) {
+  // read straight off the stamp rather than through a date object: the stamp is
+  // UTC, and rendering it in the reader's zone could show the day before
+  var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ""));
+  if (!m) return iso ? String(iso) : "";
+  return Number(m[3]) + " " + MONTHS[Number(m[2]) - 1] + " " + m[1];
+}
+
+function tierSuffix(p) {
+  // name whichever kind is the exception here. Writing "never verified" beside
+  // every single name when almost nobody is verified says nothing and reads as
+  // though it were a warning about that one person.
+  if (seedsDominant) return p.tier === "seed" ? "" : " (contributed)";
+  return p.tier === "seed" ? " (never verified)" : "";
+}
+function tierMark(p) {
+  if (seedsDominant) return p.tier === "seed" ? "" : " ●";
+  return p.tier === "seed" ? " ○" : "";
+}
+
+function describeData() {
+  var el = document.getElementById("dataline");
+  var flag = D.is_sample_data;
+  if (flag === true) {
+    el.className = "warn";
+    el.innerHTML = "<b>NOT REAL YET.</b> Every person here is invented and " +
+      "every number made up. Nothing has been through the pipeline. " +
+      "<a href=\"#built\">What this will be</a>.";
+  } else if (flag === false) {
+    // provenance, not silence: saying nothing would leave a page of real
+    // accounts with no statement of where they came from
+    var bits = [count(N, "person", "people")];
+    if (D.pipeline_version) bits.push("pipeline v" + esc(D.pipeline_version));
+    if (D.extraction_mode) bits.push(esc(String(D.extraction_mode).replace(/_/g, "-")) + " extraction");
+    if (D.generated_at) bits.push("generated " + esc(shortDate(D.generated_at)));
+    el.className = "warn calm";
+    el.innerHTML = bits.join(" &middot; ");
+  } else {
+    // a file that does not say gets the benefit of no doubt at all
+    el.className = "warn";
+    el.innerHTML = "<b>UNSTATED.</b> This file does not say whether it holds " +
+      "real data or sample data. Treat everything on this page as unverified.";
+  }
+  el.hidden = false;
+}
+
+function describeProvisional() {
+  var el = document.getElementById("provline");
+  if (N >= PROVISIONAL_BELOW) { el.hidden = true; el.innerHTML = ""; return; }
+  var pairs = N * (N - 1) / 2;
+  el.className = "warn";
+  el.innerHTML = "<b>Provisional arrangement.</b> " + count(N, "person", "people") +
+    " make " + count(pairs, "pair", "pairs") + ", and every score here is " +
+    "standardised across " + (pairs === 1 ? "that pair" : "those " + pairs + " pairs") +
+    " and nothing else &mdash; at this size the numbers swing on very little. " +
+    "Read the distances as a rough ordering, not as a measurement. It takes " +
+    "something like " + SETTLED_AT + " people before this map is worth reading " +
+    "as one.";
+  el.hidden = false;
+}
+
+function describeCohort() {
+  var line = document.getElementById("cohortline");
+  var para = document.getElementById("seedpara");
+
+  if (D.is_sample_data === true) {
+    line.textContent = "Everyone on the map above is invented.";
+  } else if (seeds === 0) {
+    line.innerHTML = "The map above holds " + count(N, "person", "people") +
+      ", all contributed. None of them came through the steps below, because " +
+      "the steps below do not exist yet.";
+  } else if (contributed === 0) {
+    line.innerHTML = "The map above holds " + count(N, "person", "people") +
+      ", every one of them seeded from a public archive. Nobody came through " +
+      "the steps below, because the steps below do not exist yet.";
+  } else {
+    line.innerHTML = "The map above holds " + count(N, "person", "people") +
+      ": " + seeds + " seeded from a public archive, " + contributed +
+      " contributed. None of them came through the steps below, because the " +
+      "steps below do not exist yet.";
+  }
+
+  var said;
+  if (seeds === 0) {
+    said = "Every profile on the map above was contributed rather than seeded, " +
+      "so every point on it is drawn solid.";
+  } else if (seedsDominant) {
+    // seeded is the normal case on this map. Describing it as a second, odd
+    // kind of profile would be the wrong way round.
+    said = "<b>This is a seeded map.</b> " + seeds + " of the " + N +
+      " profiles above were not contributed at all. They were seeded from a " +
+      "public archive, and nobody posted a code for any of them, so nobody has " +
+      "shown that those accounts belong to whoever the profiles describe. " +
+      (contributed === 1 ? "One profile was contributed directly."
+                         : contributed + " were contributed directly.") +
+      " Seeded profiles are drawn as hollow circles for that reason and for no other.";
+  } else {
+    said = "The map above also carries a second kind of profile, drawn as a " +
+      "hollow circle: " + seeds + " of the " + N + " were seeded rather than " +
+      "contributed. Nobody posted a code for those, so nobody has shown that " +
+      "the account belongs to whoever the profile describes. They are marked " +
+      "differently for that reason and for no other.";
+  }
+  // Marking only the seeded ones as unverified would imply the others were
+  // verified. Nothing here has been: the check does not exist yet.
+  if (contributed > 0 && seeds > 0) {
+    said += " Being contributed rather than seeded is not the same as being " +
+      "verified. Nothing on this map has passed the check described above, " +
+      "because that check has not been built.";
+  }
+  para.innerHTML = said;
+}
+
+function describeLegend() {
+  // size and colour say how near; fill says how the profile got here. One glyph
+  // must never stand for both, which is easy to get wrong once nearly every
+  // point on the map is hollow.
+  var bits = ["<span>bigger and coloured &mdash; near you</span>"];
+  if (seeds > 0) {
+    bits.push("<span>&#9675; hollow &mdash; seeded, never verified (" +
+      seeds + " of " + N + ")</span>");
+  }
+  if (seeds > 0 && seedsDominant && contributed > 0) {
+    // name the exception, since the hollow mark no longer picks anyone out
+    bits.push("<span>&#9679; solid &mdash; contributed (" + contributed + ")</span>");
+  }
+  if (invariantUseful) {
+    bits.push("<span class=\"keep\">&#8857; near you everywhere</span>");
+  }
+  bits.push("<span>&#9632; you</span>");
+  document.getElementById("legend").innerHTML = bits.join("\n");
+}
+
+// ---------------------------------------------------------------- layouts
+// The map has one settled arrangement per corner of the triangle, worked out
+// in advance. Where the dot sits decides how much of each arrangement you see:
+// a point's position is the weighted average of its three positions, using the
+// same weights that order the list. That is smooth, it never jumps, and it is
+// reversible — drag back and everyone returns to exactly where they were.
+//
+// What it deliberately is NOT is a fresh projection per frame. Working the
+// picture out again on every mouse move would let the whole map spin or flip
+// between frames, because those arrangements are only ever settled up to a
+// turn and a mirror. Nobody could follow a point through that.
+
+function readCornerLayouts() {
+  // Older files carry only the single fixed `layout`. Those still work; the
+  // map simply does not move. Anything malformed falls back the same way
+  // rather than throwing.
+  var ls = D.layouts;
+  if (!ls) return null;
+  var out = [];
+  for (var a = 0; a < AXES.length; a++) {
+    var arr = ls[AXES[a]];
+    if (!arr || arr.length !== N) return null;
+    out.push(arr);
+  }
+  return out;
+}
+
+function computeFrame() {
+  // One transform for the whole session, taken from the extremes of every
+  // arrangement the map can show. A blended position is a weighted average of
+  // three fixed points, so it can never leave that box. Re-fitting the box per
+  // frame would zoom the map under the reader's hand, which is the same
+  // disorientation by another route.
+  var sets = corners || [D.layout];
+  var minx = Infinity, maxx = -Infinity, miny = Infinity, maxy = -Infinity;
+  for (var s = 0; s < sets.length; s++) {
+    var L = sets[s];
+    for (var i = 0; i < L.length; i++) {
+      if (L[i][0] < minx) minx = L[i][0];
+      if (L[i][0] > maxx) maxx = L[i][0];
+      if (L[i][1] < miny) miny = L[i][1];
+      if (L[i][1] > maxy) maxy = L[i][1];
+    }
+  }
+  var r = canvas.getBoundingClientRect(), pad = 22;
+  // one scale for both directions, so no arrangement is stretched
+  var k = Math.min((r.width - 2 * pad) / (maxx - minx || 1),
+                   (r.height - 2 * pad) / (maxy - miny || 1));
+  frame = {
+    s: k,
+    ox: (r.width - (maxx - minx) * k) / 2 - minx * k,
+    oy: (r.height - (maxy - miny) * k) / 2 - miny * k
+  };
+}
+
+function positions() {
+  // three multiply-adds per person per frame
+  var f = frame, out = pts;
+  out.length = 0;
+  var i;
+  if (corners) {
+    var A = corners[0], B = corners[1], S = corners[2];
+    var w0 = W[0], w1 = W[1], w2 = W[2];
+    for (i = 0; i < N; i++) {
+      out.push([
+        (w0 * A[i][0] + w1 * B[i][0] + w2 * S[i][0]) * f.s + f.ox,
+        (w0 * A[i][1] + w1 * B[i][1] + w2 * S[i][1]) * f.s + f.oy
+      ]);
+    }
+  } else {
+    var L = D.layout;
+    for (i = 0; i < N; i++) out.push([L[i][0] * f.s + f.ox, L[i][1] * f.s + f.oy]);
+  }
+  return out;
+}
+
+function describeMotion() {
+  var el = document.getElementById("motionnote");
+  if (!el) return;
+  el.innerHTML = corners
+    ? "The map slides as you drag. Each corner has its own settled arrangement, " +
+      "worked out once and never recomputed; in between, everyone sits at the " +
+      "weighted average of their three places. So points glide, and glide back " +
+      "if you drag back &mdash; they never jump or swap sides."
+    : "This file carries a single fixed arrangement, so the map does not move. " +
+      "Dragging the dot changes which points light up, not where they sit.";
+}
+
+// ---------------------------------------------------------------- arithmetic
+// Everything below is plain client-side arithmetic over the similarities that
+// came in the file. Nothing here calls the network, and nothing here rescales:
+// the file arrives already standardised across the population, so combining is
+// only ever a weighted sum.
+
+function computeAxisScores(f) {
+  var out = {};
+  AXES.forEach(function (a) {
+    var views = axisViews[a];
+    var arr = new Float64Array(N);
+    for (var v = 0; v < views.length; v++) {
+      var row = D.similarity[views[v]][f];
+      for (var i = 0; i < N; i++) arr[i] += row[i];
+    }
+    if (views.length) for (var j = 0; j < N; j++) arr[j] /= views.length;
+    out[a] = arr;
+  });
+  return out;
+}
+
+function combine(w, into) {
+  var a = axisScore.TOPIC, b = axisScore.WORLDVIEW, c = axisScore.STYLE;
+  var out = into || new Float64Array(N);
+  for (var i = 0; i < N; i++) out[i] = w[0] * a[i] + w[1] * b[i] + w[2] * c[i];
+  return out;
+}
+
+var idxBuf = null, scratch = null;
+function topSet(w, sink) {
+  // indices of the LIST_N highest scorers, focus excluded
+  if (!idxBuf) { idxBuf = new Int32Array(N); scratch = new Float64Array(N); }
+  combine(w, scratch);
+  var n = 0, i;
+  for (i = 0; i < N; i++) if (i !== focus) idxBuf[n++] = i;
+  // sorted in place in the reused buffer: this runs a few hundred times per
+  // change of focus, so it should not be allocating on every pass
+  var view = idxBuf.subarray(0, n);
+  view.sort(function (x, y) { return scratch[y] - scratch[x]; });
+  var k = Math.min(LIST_N, n);
+  for (i = 0; i < k; i++) sink[view[i]]++;
+  return k;
+}
+
+function computeInvariant() {
+  // A sweep of the whole triangle. The combined score is a weighted sum, so it
+  // moves smoothly as the dot moves; a grid this fine does not miss anyone who
+  // drops out somewhere in between. Only runs when the focus person changes.
+  invariant = new Uint8Array(N);
+  invariantCount = 0;
+  // When the list is everyone, or all but a handful, every single person passes
+  // this test by construction. Marking the whole map would be announcing
+  // nothing while looking like a finding, so the sweep is not run at all and
+  // the readout says why instead.
+  if (!invariantUseful) return;
+  var counts = new Int32Array(N);
+  var points = 0;
+  for (var i = 0; i <= GRID; i++) {
+    for (var j = 0; j <= GRID - i; j++) {
+      var k = GRID - i - j;
+      topSet([i / GRID, j / GRID, k / GRID], counts);
+      points++;
+    }
+  }
+  for (var p = 0; p < N; p++) {
+    if (counts[p] === points) { invariant[p] = 1; invariantCount++; }
+  }
+}
+
+function reRank() {
+  score = combine(W, score);
+  order.length = 0;
+  for (var i = 0; i < N; i++) if (i !== focus) order.push(i);
+  order.sort(function (a, b) { return score[b] - score[a]; });
+  rankOf = new Int32Array(N);
+  for (var r = 0; r < Math.min(LIST_N, order.length); r++) rankOf[order[r]] = r + 1;
+}
+
+function setFocus(f) {
+  focus = f;
+  axisScore = computeAxisScores(f);
+  score = new Float64Array(N);
+  computeInvariant();
+  update();
+}
+
+// ---------------------------------------------------------------- readouts
+function buildList() {
+  var tb = document.getElementById("nblist");
+  for (var i = 0; i < LIST_N; i++) {
+    var tr = document.createElement("tr");
+    var tdR = document.createElement("td"); tdR.className = "r";
+    var tdK = document.createElement("td"); tdK.className = "k";
+    var tdH = document.createElement("td");
+    var tdS = document.createElement("td"); tdS.className = "s";
+    tr.appendChild(tdR); tr.appendChild(tdK); tr.appendChild(tdH); tr.appendChild(tdS);
+    tb.appendChild(tr);
+    rows.push({ tr: tr, r: tdR, k: tdK, h: tdH, s: tdS, who: -1 });
+    (function (row) {
+      tr.addEventListener("mouseenter", function () { hot = row.who; paintHot(); drawMap(); });
+      tr.addEventListener("mouseleave", function () { hot = -1; paintHot(); drawMap(); });
+    })(rows[i]);
+  }
+}
+
+function paintHot() {
+  for (var i = 0; i < rows.length; i++) {
+    rows[i].tr.className = (rows[i].who >= 0 && rows[i].who === hot) ? "hot" : "";
+  }
+}
+
+function update() {
+  reRank();
+  for (var i = 0; i < rows.length; i++) {
+    var row = rows[i];
+    if (i < order.length) {
+      var p = order[i];
+      row.who = p;
+      row.r.textContent = String(i + 1);
+      row.k.textContent = invariant[p] ? "⊙" : "";
+      row.k.title = invariant[p]
+        ? "in your nearest " + LIST_N + " everywhere in the triangle" : "";
+      row.h.textContent = "@" + D.people[p].handle + tierMark(D.people[p]);
+      row.s.textContent = score[p].toFixed(2);
+      row.tr.style.display = "";
+    } else {
+      row.who = -1;
+      row.tr.style.display = "none";
+    }
+  }
+  paintHot();
+
+  var pct = W.map(function (x) { return Math.round(x * 100); });
+  document.getElementById("weights").innerHTML =
+    "Topic <b>" + pct[0] + "%</b> &middot; Worldview <b>" + pct[1] +
+    "%</b> &middot; Style <b>" + pct[2] + "%</b>";
+  svg.setAttribute("aria-valuetext",
+    "topic " + pct[0] + " percent, worldview " + pct[1] + " percent, style " + pct[2] + " percent");
+
+  var inv = document.getElementById("invline");
+  var me = esc(D.people[focus].handle);
+  if (!invariantUseful) {
+    // say it plainly rather than ring every point on the map
+    inv.innerHTML = N - 1 <= LIST_N
+      ? "There are only " + count(N - 1, "other person", "other people") +
+        " here, so the list holds all of them and nobody can drop out of it. " +
+        "Nothing is marked as staying near @" + me + " everywhere, because at " +
+        "this size that would be true of everyone."
+      : "The list holds " + LIST_N + " of the " + (N - 1) + " other people here, " +
+        "so almost nobody can be outside it. Nothing is marked as staying near @" +
+        me + " everywhere until there are more people to fall out.";
+  } else if (invariantCount === 0) {
+    inv.innerHTML = "<b>Nobody</b> stays in the nearest " + LIST_N +
+      " across the whole triangle for @" + me + ".";
+  } else {
+    inv.innerHTML = "<b>" + count(invariantCount, "person", "people") +
+      "</b> stay in the nearest " + LIST_N + " for @" + me +
+      " at <i>every</i> setting of the dial &mdash; ringed <span class=\"keep\">⊙</span> " +
+      "on the map, marked in the list.";
+  }
+
+  drawTriangle();
+  drawMap();
+}
+
+// ---------------------------------------------------------------- triangle
+function drawTriangle() {
+  var p = [
+    W[0] * V[0][0] + W[1] * V[1][0] + W[2] * V[2][0],
+    W[0] * V[0][1] + W[1] * V[1][1] + W[2] * V[2][1]
+  ];
+  var lines = "";
+  for (var i = 0; i < 3; i++) {
+    lines += '<line x1="' + p[0] + '" y1="' + p[1] + '" x2="' + V[i][0] + '" y2="' +
+      V[i][1] + '" stroke="' + C.rule + '" stroke-width="1" stroke-dasharray="3 3"/>';
+  }
+  svg.innerHTML =
+    '<polygon points="' + V.map(function (v) { return v.join(","); }).join(" ") +
+      '" fill="' + C.panel + '" stroke="' + C.rule + '" stroke-width="1.5"/>' +
+    lines +
+    '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="8" fill="' + C.mark +
+      '" stroke="' + C.bg + '" stroke-width="2"/>' +
+    '<text x="150" y="18" text-anchor="middle" font-size="12" fill="' + C.fg + '">TOPIC</text>' +
+    '<text x="40" y="238" text-anchor="middle" font-size="12" fill="' + C.fg + '">WORLDVIEW</text>' +
+    '<text x="260" y="238" text-anchor="middle" font-size="12" fill="' + C.fg + '">STYLE</text>';
+}
+
+function baryFromXY(x, y) {
+  var x1 = V[0][0], y1 = V[0][1], x2 = V[1][0], y2 = V[1][1], x3 = V[2][0], y3 = V[2][1];
+  var det = (y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3);
+  var a = ((y2 - y3) * (x - x3) + (x3 - x2) * (y - y3)) / det;
+  var b = ((y3 - y1) * (x - x3) + (x1 - x3) * (y - y3)) / det;
+  var c = 1 - a - b;
+  // outside the triangle: clip the negative parts away and renormalise, which
+  // slides the dot onto the nearest edge or corner rather than letting go
+  a = Math.max(0, a); b = Math.max(0, b); c = Math.max(0, c);
+  var s = a + b + c;
+  return s > 0 ? [a / s, b / s, c / s] : [1 / 3, 1 / 3, 1 / 3];
+}
+
+function svgPoint(ev) {
+  var r = svg.getBoundingClientRect();
+  var vb = svg.viewBox.baseVal;
+  return [(ev.clientX - r.left) / r.width * vb.width, (ev.clientY - r.top) / r.height * vb.height];
+}
+
+function wireTriangle() {
+  var pending = false, dragging = false;
+  function apply(ev) {
+    var p = svgPoint(ev);
+    W = baryFromXY(p[0], p[1]);
+    if (!pending) {
+      pending = true;
+      requestAnimationFrame(function () { pending = false; update(); });
+    }
+  }
+  // capture can throw if the pointer id is not currently active; losing capture
+  // is survivable, so it must not take the drag down with it
+  function capture(on, id) {
+    try { on ? svg.setPointerCapture(id) : svg.releasePointerCapture(id); } catch (e) {}
+  }
+  svg.addEventListener("pointerdown", function (ev) {
+    dragging = true;
+    capture(true, ev.pointerId);
+    svg.focus();
+    apply(ev);
+    ev.preventDefault();
+  });
+  svg.addEventListener("pointermove", function (ev) { if (dragging) { apply(ev); ev.preventDefault(); } });
+  svg.addEventListener("pointerup", function (ev) { dragging = false; capture(false, ev.pointerId); });
+  svg.addEventListener("pointercancel", function () { dragging = false; });
+
+  // keyboard: nudge weight between the axes without a pointing device
+  svg.addEventListener("keydown", function (ev) {
+    var step = 0.05, w = W.slice(), moved = true;
+    if (ev.key === "ArrowUp") { w[0] += step; w[1] -= step / 2; w[2] -= step / 2; }
+    else if (ev.key === "ArrowDown") { w[0] -= step; w[1] += step / 2; w[2] += step / 2; }
+    else if (ev.key === "ArrowLeft") { w[1] += step; w[2] -= step; }
+    else if (ev.key === "ArrowRight") { w[2] += step; w[1] -= step; }
+    else if (ev.key === "Home") { w = [1 / 3, 1 / 3, 1 / 3]; }
+    else moved = false;
+    if (!moved) return;
+    ev.preventDefault();
+    for (var i = 0; i < 3; i++) w[i] = Math.max(0, w[i]);
+    var s = w[0] + w[1] + w[2];
+    W = [w[0] / s, w[1] / s, w[2] / s];
+    update();
+  });
+}
+
+function wirePresets() {
+  var btns = document.querySelectorAll(".presets button");
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].addEventListener("click", function () {
+      W = this.getAttribute("data-w").split(",").map(Number);
+      update();
+    });
+  }
+}
+
+// ---------------------------------------------------------------- map
+function sizeCanvas() {
+  var dpr = window.devicePixelRatio || 1;
+  var r = canvas.getBoundingClientRect();
+  canvas.width = Math.max(1, Math.round(r.width * dpr));
+  canvas.height = Math.max(1, Math.round(r.height * dpr));
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  computeFrame();
+}
+
+function drawMap() {
+  if (!D || !frame) return;
+  var r = canvas.getBoundingClientRect();
+  var w = r.width, h = r.height;
+  ctx.clearRect(0, 0, w, h);
+
+  positions();
+  var i;
+
+  // painter's order: background crowd, then neighbours, then the marked, then you
+  var draw = [];
+  for (i = 0; i < N; i++) {
+    if (i === focus) continue;
+    draw.push(i);
+  }
+  draw.sort(function (a, b) {
+    var ra = rankOf[a] || 999, rb = rankOf[b] || 999;
+    return rb - ra;
+  });
+
+  for (var d = 0; d < draw.length; d++) {
+    i = draw[d];
+    var p = pts[i], rank = rankOf[i], seed = D.people[i].tier === "seed";
+    var isHot = i === hot;
+    var rad, col;
+    if (rank) {
+      // nearest people are bigger; the top of the list is unmistakable
+      rad = 7.5 - 4.0 * ((rank - 1) / LIST_N);
+      col = C.mark;
+    } else {
+      rad = 2.6; col = C.faint;
+    }
+    if (isHot) rad += 2.5;
+
+    ctx.beginPath();
+    ctx.arc(p[0], p[1], rad, 0, 6.2832);
+    if (seed) {
+      // never verified: hollow, so it can never be mistaken for a real contributor
+      ctx.strokeStyle = col; ctx.lineWidth = 1.6; ctx.stroke();
+    } else {
+      ctx.fillStyle = col; ctx.fill();
+    }
+    if (invariant && invariant[i]) {
+      // the marquee mark: this person does not drop out of the list no
+      // matter where the dot goes, so it gets its own colour, not a shade
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], rad + 4.5, 0, 6.2832);
+      ctx.strokeStyle = C.keep; ctx.lineWidth = 2.2; ctx.stroke();
+    }
+    if (isHot) label("@" + D.people[i].handle, p[0], p[1] - rad - 6, false, w);
+  }
+
+  // you
+  var f = pts[focus];
+  ctx.fillStyle = C.mark2;
+  ctx.fillRect(f[0] - 5, f[1] - 5, 10, 10);
+  ctx.strokeStyle = C.fg; ctx.lineWidth = 1.2;
+  ctx.strokeRect(f[0] - 5, f[1] - 5, 10, 10);
+  label("@" + D.people[focus].handle, f[0], f[1] - 11, true, w);
+}
+
+function label(text, x, y, bold, w) {
+  // knocked out of the background first, so a name over a crowd stays readable,
+  // and nudged inward so it cannot run off the edge of the box
+  ctx.font = (bold ? "bold " : "") + "12px Georgia, serif";
+  ctx.textAlign = "center";
+  var half = ctx.measureText(text).width / 2 + 2;
+  x = Math.max(half, Math.min(w - half, x));
+  y = Math.max(12, y);
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = C.panel; ctx.lineWidth = 3.5;
+  ctx.strokeText(text, x, y);
+  ctx.fillStyle = C.fg;
+  ctx.fillText(text, x, y);
+}
+
+function nearest(x, y) {
+  var best = -1, bd = 18 * 18;
+  for (var i = 0; i < pts.length; i++) {
+    var dx = pts[i][0] - x, dy = pts[i][1] - y, d = dx * dx + dy * dy;
+    if (d < bd) { bd = d; best = i; }
+  }
+  return best;
+}
+
+function wireMapHover() {
+  function at(ev) {
+    var r = canvas.getBoundingClientRect();
+    var x = ev.clientX - r.left, y = ev.clientY - r.top;
+    var i = nearest(x, y);
+    if (i !== hot) { hot = i; paintHot(); drawMap(); }
+    if (i < 0) { tip.style.display = "none"; return; }
+    var p = D.people[i];
+    var bits = ["<b>@" + esc(p.handle) + "</b>"];
+    if (i === focus) bits.push("this is who you are looking from");
+    else {
+      bits.push(rankOf[i] ? "nearest " + rankOf[i] + " of " + LIST_N
+                          : "outside the nearest " + LIST_N);
+      bits.push("score " + score[i].toFixed(2));
+      if (invariant[i]) bits.push("⊙ near you at every setting");
+    }
+    bits.push(p.tier === "seed" ? "seeded, never verified" : "contributed");
+    tip.innerHTML = bits.join("<br>");
+    tip.style.display = "block";
+    var tw = tip.offsetWidth, th = tip.offsetHeight;
+    tip.style.left = Math.max(0, Math.min(r.width - tw, x + 12)) + "px";
+    tip.style.top = Math.max(0, y - th - 10) + "px";
+  }
+  canvas.addEventListener("pointermove", at);
+  canvas.addEventListener("pointerdown", at);
+  canvas.addEventListener("pointerleave", function () {
+    hot = -1; tip.style.display = "none"; paintHot(); drawMap();
+  });
+}
+
+})();
+</script>
+
+</body>
+</html>
