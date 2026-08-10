@@ -154,8 +154,8 @@ table.nb td.k { width: 1.4em; color: var(--keep); font-weight: bold; }
 <header class="site-hero">
   <p class="eyebrow">MEET YOUR NEIGHBORS</p>
   <h1>Find your neighbors, not your neighborhood.</h1>
-  <p class="lede">Choose someone and see who is closest. There are no camps and
-  no political directions&mdash;only changing relationships between people.</p>
+  <p class="lede">There are no camps and no political directions&mdash;only
+  changing relationships between people.</p>
 </header>
 
 <section class="map-section" aria-labelledby="map-title">
@@ -447,7 +447,14 @@ function start(doc) {
     o.textContent = "@" + p.handle + tierSuffix(p);
     sel.appendChild(o);
   });
-  sel.value = "0";
+  var initialFocus = 0;
+  for (var p = 0; p < D.people.length; p++) {
+    if (String(D.people[p].handle).toLowerCase() === "joe") {
+      initialFocus = p;
+      break;
+    }
+  }
+  sel.value = String(initialFocus);
   sel.addEventListener("change", function () { setFocus(parseInt(sel.value, 10)); });
 
   readColours();
@@ -465,7 +472,7 @@ function start(doc) {
   wireMapHover();
   window.addEventListener("resize", function () { sizeCanvas(); drawMap(); });
 
-  setFocus(0);
+  setFocus(initialFocus);
 }
 
 // ------------------------------------------------------- what the page claims
