@@ -128,6 +128,12 @@ You get to see who is near you. Nobody, including you, gets told why.</i></p>
      it has not seen. -->
 <p id="dataline" hidden></p>
 
+<p style="font-size:.85rem">
+  <a href="profiles.html">Read the prompt and every description behind this map &rarr;</a><br>
+  <span class="dim">The descriptions are readable in full. They were written by a
+  language model from public posts, and they can be wrong about a person.</span>
+</p>
+
 <div class="controls">
   <label for="who">Looking from: </label>
   <select id="who"></select>
@@ -208,13 +214,10 @@ you.</b> Those descriptions, and the numbers made from them, will be kept.
 <b>The sampled posts will be deleted at that point.</b> They are not stored, not
 archived, and not held for later.</li>
 
-<li><b>You will prove the account is yours by posting in public.</b> You will be
-given a one-time code, and asked to post a fixed phrase containing it from the
-account. Then you paste the link to that post back here. That is the whole
-check.</li>
-
-<li><b>Until that check passes, you will not be on the map.</b> An unverified
-profile is not shown.</li>
+<li><b>Your profile will go on the map, drawn as contributed.</b> That mark
+records one thing: that you brought your own archive to the page, rather than
+having it taken from a public one. It does not record that anybody checked whose
+archive it was.</li>
 </ol>
 
 <div class="dropbox" aria-hidden="true">
@@ -223,9 +226,10 @@ profile is not shown.</li>
 </div>
 
 <p><b>There is no sign-in, ever.</b> The site will not ask you for a password,
-and there is nothing to log into. Proving the account is yours is a public post
-from it, which is something only the account holder can do. That also means the
-site never holds a credential of yours that could later leak.</p>
+and there is nothing to log into, so it never holds a credential of yours that
+could later leak. The other half of that is worth saying out loud: nothing checks
+whose archive it was. No identity check is performed at any point, and
+contributing is not treated as proof of anything.</p>
 
 <p><b>Your posts are deleted, and that is not reversible.</b> Keeping only the
 descriptions and the numbers is the point of the design, but it has a real cost:
@@ -236,9 +240,10 @@ gone. That is the trade, stated plainly.</p>
 <!-- static text is true whichever way the file goes; the script replaces it
      with the actual counts once the file has been read -->
 <p id="seedpara">Some of the profiles on the map above were seeded rather than
-contributed, and are drawn as hollow circles. Nobody posted a code for those, so
-nobody has shown that the account belongs to whoever the profile describes. They
-are marked differently for that reason and for no other.</p>
+contributed, and are drawn as hollow circles. Those people uploaded nothing.
+Their posts were taken from a public archive by whoever built this page, and they
+did not choose to be here. They are marked differently for that reason and for no
+other.</p>
 
 <!-- static on purpose: the script rewrites #seedpara from the file's counts,
      and this must survive that regardless of what the file says -->
@@ -246,7 +251,8 @@ are marked differently for that reason and for no other.</p>
 <a href="https://www.community-archive.org/">Community Archive</a>, where those
 people published their whole posting history in the open for anyone to read and
 analyse. That is what it is there for. Being named on someone else's map of who
-resembles whom is a further step, and nobody on this page agreed to it.
+resembles whom, and described on it in prose you did not write, is a further
+step, and nobody on this page agreed to it.
 <strong>So if you are on this map and would rather not be, say so and you will be
 removed.</strong> No reason needed and none will be asked for.</p>
 
@@ -295,8 +301,10 @@ to the model are ever improved, everyone has to contribute again, because there
 is nothing left to re-read.</p>
 
 <p>People whose numbers land close together are neighbours. You see their names,
-their rank, and a score. You never see the descriptions written about them, and
-they never see the ones written about you.</p>
+their rank, and a score, and never a reason for any of it. The descriptions those
+numbers were made from are published in full on
+<a href="profiles.html">their own page</a>, but nothing on the map is annotated
+with them, and no rank here arrives with an explanation attached.</p>
 
 <p>The picture at the top of this page is worked out three times over: once for
 each corner of the triangle. Those three arrangements are settled in advance and
@@ -493,11 +501,11 @@ function shortDate(iso) {
 }
 
 function tierSuffix(p) {
-  // name whichever kind is the exception here. Writing "never verified" beside
-  // every single name when almost nobody is verified says nothing and reads as
-  // though it were a warning about that one person.
+  // name whichever kind is the exception here. Writing "seeded" beside every
+  // single name when almost everybody is seeded says nothing, and reads as
+  // though it were a remark about that one person.
   if (seedsDominant) return p.tier === "seed" ? "" : " (contributed)";
-  return p.tier === "seed" ? " (never verified)" : "";
+  return p.tier === "seed" ? " (seeded)" : "";
 }
 function tierMark(p) {
   if (seedsDominant) return p.tier === "seed" ? "" : " ●";
@@ -525,7 +533,7 @@ function describeData() {
     // a file that does not say gets the benefit of no doubt at all
     el.className = "warn";
     el.innerHTML = "<b>UNSTATED.</b> This file does not say whether it holds " +
-      "real data or sample data. Treat everything on this page as unverified.";
+      "real data or sample data. Treat everything on this page as unconfirmed.";
   }
   el.hidden = false;
 }
@@ -574,25 +582,25 @@ function describeCohort() {
     // seeded is the normal case on this map. Describing it as a second, odd
     // kind of profile would be the wrong way round.
     said = "<b>This is a seeded map.</b> " + seeds + " of the " + N +
-      " profiles above were not contributed at all. They were seeded from a " +
-      "public archive, and nobody posted a code for any of them, so nobody has " +
-      "shown that those accounts belong to whoever the profiles describe. " +
+      " profiles above were not contributed at all. Those people uploaded " +
+      "nothing: their posts were taken from a public archive, and they did not " +
+      "choose to be here. " +
       (contributed === 1 ? "One profile was contributed directly."
                          : contributed + " were contributed directly.") +
       " Seeded profiles are drawn as hollow circles for that reason and for no other.";
   } else {
     said = "The map above also carries a second kind of profile, drawn as a " +
       "hollow circle: " + seeds + " of the " + N + " were seeded rather than " +
-      "contributed. Nobody posted a code for those, so nobody has shown that " +
-      "the account belongs to whoever the profile describes. They are marked " +
+      "contributed. Those people uploaded nothing. Their posts were taken from " +
+      "a public archive, and they did not choose to be here. They are marked " +
       "differently for that reason and for no other.";
   }
-  // Marking only the seeded ones as unverified would imply the others were
-  // verified. Nothing here has been: the check does not exist yet.
-  if (contributed > 0 && seeds > 0) {
-    said += " Being contributed rather than seeded is not the same as being " +
-      "verified. Nothing on this map has passed the check described above, " +
-      "because that check has not been built.";
+  // "Contributed" is a statement about where the file came from, and nothing
+  // more. Nobody's identity is checked at any point, so the mark must not be
+  // left to imply one was.
+  if (contributed > 0) {
+    said += " Contributed means only that the person brought their own archive " +
+      "to the page. Nothing checks whose archive it was.";
   }
   para.innerHTML = said;
 }
@@ -603,7 +611,7 @@ function describeLegend() {
   // point on the map is hollow.
   var bits = ["<span>bigger and coloured &mdash; near you</span>"];
   if (seeds > 0) {
-    bits.push("<span>&#9675; hollow &mdash; seeded, never verified (" +
+    bits.push("<span>&#9675; hollow &mdash; seeded from a public archive (" +
       seeds + " of " + N + ")</span>");
   }
   if (seeds > 0 && seedsDominant && contributed > 0) {
@@ -1012,7 +1020,7 @@ function drawMap() {
     ctx.beginPath();
     ctx.arc(p[0], p[1], rad, 0, 6.2832);
     if (seed) {
-      // never verified: hollow, so it can never be mistaken for a real contributor
+      // seeded: hollow, so it can never be mistaken for a contributed profile
       ctx.strokeStyle = col; ctx.lineWidth = 1.6; ctx.stroke();
     } else {
       ctx.fillStyle = col; ctx.fill();
@@ -1076,7 +1084,7 @@ function wireMapHover() {
       bits.push("score " + score[i].toFixed(2));
       if (invariant[i]) bits.push("⊙ near you at every setting");
     }
-    bits.push(p.tier === "seed" ? "seeded, never verified" : "contributed");
+    bits.push(p.tier === "seed" ? "seeded from a public archive" : "contributed");
     tip.innerHTML = bits.join("<br>");
     tip.style.display = "block";
     var tw = tip.offsetWidth, th = tip.offsetHeight;
