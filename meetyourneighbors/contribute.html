@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="mmn-submit-endpoint" content="https://stalwart-counter.pages.dev/api/contributions">
+  <title>Join the map — Meet Your Neighbors</title>
+  <link rel="stylesheet" href="contribute.css">
+</head>
+<body>
+  <p><a href="./">&larr; back to the map</a></p>
+  <h1>Meet Your Neighbors</h1>
+  <p class="lede">Find the people whose public worldview resembles yours—without being assigned an ideological label.</p>
+
+  <div class="lens" aria-label="The two map lenses">
+    <div><b>Attention</b><br><span class="dim">What you keep returning to.</span></div>
+    <div><b>Ideology</b><br><span class="dim">What you believe and how you explain what causes what.</span></div>
+  </div>
+
+  <p>Contributions are open. Your archive is cut down inside your browser. Your complete archive never leaves your computer; only a sample of about 10,000 words is sent to a private processing queue.</p>
+
+  <h2>1. Choose your archive</h2>
+  <p>Use the ZIP that X gives you, or select the <code>tweets.js</code> files inside an extracted archive.</p>
+  <label class="drop" id="drop">
+    <strong>Drop your X archive here</strong>
+    <span>or click to choose a ZIP / tweets.js files</span>
+    <input id="files" type="file" accept=".zip,.js,application/zip,text/javascript" multiple>
+  </label>
+  <p id="file-status" class="status" role="status"></p>
+
+  <section id="review" hidden>
+    <h2>2. Review what would leave your computer</h2>
+    <div class="stats">
+      <div class="stat"><b id="stat-raw">—</b><span>posts read</span></div>
+      <div class="stat"><b id="stat-kept">—</b><span>eligible pieces</span></div>
+      <div class="stat"><b id="stat-words">—</b><span>sampled words</span></div>
+      <div class="stat"><b id="stat-dates">—</b><span>sample window</span></div>
+    </div>
+    <p id="sample-warning" class="warning" hidden></p>
+    <p>Retweets, link-only posts, and posts under five words were removed. Self-reply threads were joined. The sample is spread across the most recent three years represented in the archive.</p>
+    <details>
+      <summary>Read the exact sampled posts</summary>
+      <ol id="preview" class="preview"></ol>
+    </details>
+
+    <h2>3. Name and consent</h2>
+    <div class="panel">
+      <label class="field">Name shown on the map
+        <input id="map-name" type="text" maxlength="80" autocomplete="nickname" placeholder="Your name or a pseudonym">
+      </label>
+      <label class="field">X handle <span class="dim">(optional; used only to contact you about the pilot)</span>
+        <input id="handle" type="text" maxlength="80" autocomplete="off" placeholder="@handle">
+      </label>
+      <label class="field">Email <span class="dim">(optional alternative contact)</span>
+        <input id="email" type="email" maxlength="200" autocomplete="email">
+      </label>
+
+      <label class="check"><input id="own" type="checkbox"><span>I own this archive or have the right to contribute it.</span></label>
+      <label class="check"><input id="model" type="checkbox"><span>I understand that the sampled posts will be sent to an external language-model provider to infer my recurring topics, political positions, and causal beliefs.</span></label>
+      <label class="check"><input id="publish" type="checkbox"><span>I want the resulting profile and my chosen map name included on a public, unlabelled similarity map. I can ask to be removed later.</span></label>
+    </div>
+
+    <p class="warning"><b>This is not anonymous.</b> Political beliefs are sensitive, and the model can be wrong. The sampled posts are deleted after extraction; the model-written descriptions and map coordinates are retained until you ask for removal.</p>
+    <button id="submit" class="primary" disabled>Contribute sample</button>
+    <p id="submit-status" class="status" role="status"></p>
+  </section>
+
+  <section id="done" hidden>
+    <h2>Contribution received</h2>
+    <p>Keep this receipt in case you want to ask about or remove your contribution:</p>
+    <p id="receipt" class="receipt"></p>
+    <p>Your sample is now waiting for extraction and a quality check. If it supports a comparable profile, your chosen name will be added to the public map. Keep the receipt if you need to ask about or remove it.</p>
+  </section>
+
+  <script src="contribute.js"></script>
+</body>
+</html>

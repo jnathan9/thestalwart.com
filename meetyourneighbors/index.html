@@ -3,11 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex">
 <title>Who Are Your Neighbors</title>
 <style>
 /* The rest of the site is bare HTML. Everything here is either the two colour
-   schemes or the parts a picture needs: the triangle, the map, the list. */
+   schemes or the parts a picture needs: the lens control, the map, the list. */
 :root {
   --bg: #DDEEDD;
   --fg: #000000;
@@ -63,18 +62,12 @@ small { color: var(--dim); }
 [hidden] { display: none !important; }
 .hint { font-size: 92%; color: var(--dim); margin: 0 0 6px; }
 
-/* the file drop will live here one day. It does nothing, and must not look as
-   though it might. No handler is attached to it anywhere in this file. */
-.dropbox {
-  border: 2px dashed var(--rule); color: var(--dim); background: transparent;
-  padding: 18px 14px; text-align: center; margin: 12px 0; cursor: not-allowed;
-  pointer-events: none; user-select: none;
-}
-.dropbox button[disabled] {
-  font: inherit; font-size: 92%; margin-top: 8px; padding: 3px 10px;
-  color: var(--dim); background: var(--panel); border: 1px solid var(--rule);
-}
 ol.steps > li { margin-bottom: 10px; }
+.join {
+  display: inline-block; padding: 8px 14px; margin: 8px 0;
+  color: var(--bg); background: var(--fg); border: 1px solid var(--fg);
+  text-decoration: none; font-family: system-ui, sans-serif;
+}
 
 /* ---- the map section ---- */
 .controls { margin: 12px 0; }
@@ -89,8 +82,9 @@ ol.steps > li { margin-bottom: 10px; }
 .col-controls { flex: 1 1 320px; min-width: 300px; }
 .col-map { flex: 1 1 380px; min-width: 320px; }
 
-#triangle { width: 300px; max-width: 100%; touch-action: none; display: block; cursor: pointer; }
-#triangle:focus { outline: 2px solid var(--link); outline-offset: 2px; }
+.lens-control { max-width: 330px; padding: 14px 0 8px; }
+.lens-control input { width: 100%; accent-color: var(--mark); }
+.lens-ends { display: flex; justify-content: space-between; font: bold 12px system-ui,sans-serif; }
 .weights { font-size: 95%; margin: 4px 0 0; }
 
 #maprap { position: relative; }
@@ -118,8 +112,8 @@ table.nb td.k { width: 1.4em; color: var(--keep); font-weight: bold; }
 
 <h2 align="center">Who Are Your Neighbors</h2>
 
-<p align="center"><i>A map of people who write like you.<br>
-You get to see who is near you. Nobody, including you, gets told why.</i></p>
+<p align="center"><i>See whose public worldview resembles yours.<br>
+You get to know your neighbors, without being assigned a neighborhood.</i></p>
 
 <!-- Written from the file, never from memory. What this line says depends on
      is_sample_data: a warning when the numbers are invented, a plain statement
@@ -129,9 +123,9 @@ You get to see who is near you. Nobody, including you, gets told why.</i></p>
 <p id="dataline" hidden></p>
 
 <p style="font-size:.85rem">
-  <a href="profiles.html">Read the prompt and every description behind this map &rarr;</a><br>
-  <span class="dim">The descriptions are readable in full. They were written by a
-  language model from public posts, and they can be wrong about a person.</span>
+  <span class="dim">The underlying descriptions were written by a language model
+  from public posts and can be wrong. They are not displayed as labels or as
+  explanations for anyone's position.</span>
 </p>
 
 <div class="controls">
@@ -142,14 +136,16 @@ You get to see who is near you. Nobody, including you, gets told why.</i></p>
 <div class="cols">
 
   <div class="col-controls">
-    <p class="hint">Drag the dot. The nearer it sits to a corner, the more that
-    corner counts. The list re-sorts as you drag.</p>
-    <svg id="triangle" viewBox="0 0 300 250" tabindex="0" role="slider"
-         aria-label="Weighting between topic, worldview and style"
-         aria-valuetext="equal weighting"></svg>
+    <p class="hint">Move the dial between shared attention and shared ideology.
+    The list and map move with it.</p>
+    <div class="lens-control">
+      <input id="lens" type="range" min="0" max="100" value="50" step="1"
+             aria-label="Weighting between attention and ideology">
+      <div class="lens-ends"><span>ATTENTION</span><span>IDEOLOGY</span></div>
+    </div>
     <p class="weights" id="weights">&nbsp;</p>
     <p class="presets">
-      <button data-w="1,0,0">Topic</button><button data-w="0,1,0">Worldview</button><button data-w="0,0,1">Style</button><button data-w="0.3333,0.3333,0.3334">Even</button>
+      <button data-w="1,0">Attention</button><button data-w="0,1">Ideology</button><button data-w="0.5,0.5">Even</button>
     </p>
     <table class="nb">
       <thead><tr><th></th><th></th><th id="nbhead">Nearest</th><th class="s" style="text-align:right">score</th></tr></thead>
@@ -171,9 +167,8 @@ You get to see who is near you. Nobody, including you, gets told why.</i></p>
     <!-- built from the file: which marks are worth explaining depends on how
          many people carry them -->
     <p class="legend" id="legend">&nbsp;</p>
-    <p class="legend"><b>Topic</b> is what a person keeps coming back to.
-    <b>Worldview</b> is what they think and how they think things connect.
-    <b>Style</b> is temperament, and the kinds of argument they are drawn to.</p>
+    <p class="legend"><b>Attention</b> is what a person keeps coming back to.
+    <b>Ideology</b> is what they believe and how they explain what causes what.</p>
     <p class="legend" id="motionnote">&nbsp;</p>
     <p class="legend">Score is standardised, not a percentage: 0 is how close an
     average pair of people are, and 1.0 means one standard deviation closer than
@@ -186,33 +181,29 @@ You get to see who is near you. Nobody, including you, gets told why.</i></p>
 
 <hr>
 
-<h3>How you would get on this map</h3>
+<h3>Get on the map</h3>
 
 <div class="prose">
 
-<p><b>You cannot yet.</b> Nothing described in this section is built. There is no
-way to contribute today, and the steps below are what the process is intended to
-be, not what it does. <span id="cohortline"></span></p>
+<p><b>Contributions are open.</b> <span id="cohortline"></span></p>
 
 <ol class="steps">
 <li><b>Ask X for your archive.</b> It is a setting in your account. They take
 about a day, then email you a link to download it.</li>
 
-<li><b>Drop the <code>tweets.js</code> file from it onto the page.</b> The file
-itself will never be uploaded. It will be opened and read inside your own
-browser, on your own machine.</li>
+<li><b>Open the contribution page and choose the ZIP.</b> The complete archive
+is opened inside your browser and never uploaded.</li>
 
 <li><b>Your browser will do the cutting down.</b> Reposts of other people's
-writing will go. So will posts under five words, and posts that are nothing but a
-link. Where you replied to yourself over and over, the chain will be stitched
-back into one piece of writing. From what is left, about 400 pieces will be
-picked, spread across the years. Only that sample and your handle will leave your
-machine.</li>
+writing will go. So will posts under five words and link-only posts. Self-reply
+threads are stitched back together. A 10,000-word sample is spread across the
+most recent three years represented in the archive. You see the exact sample
+before deciding whether to contribute it.</li>
 
-<li><b>A fixed model will read the sample and write five short descriptions of
-you.</b> Those descriptions, and the numbers made from them, will be kept.
-<b>The sampled posts will be deleted at that point.</b> They are not stored, not
-archived, and not held for later.</li>
+<li><b>A fixed model reads the sample and writes three short descriptions:</b>
+what you keep returning to, what you believe, and how you explain what causes
+what. The sample waits in a private queue only until that work and its quality
+check are complete, then it is deleted.</li>
 
 <li><b>Your profile will go on the map, drawn as contributed.</b> That mark
 records one thing: that you brought your own archive to the page, rather than
@@ -220,10 +211,7 @@ having it taken from a public one. It does not record that anybody checked whose
 archive it was.</li>
 </ol>
 
-<div class="dropbox" aria-hidden="true">
-  Drop <code>tweets.js</code> here<br>
-  <button type="button" disabled>Not open yet</button>
-</div>
+<p><a class="join" href="contribute.html">Contribute your archive &rarr;</a></p>
 
 <p><b>There is no sign-in, ever.</b> The site will not ask you for a password,
 and there is nothing to log into, so it never holds a credential of yours that
@@ -231,11 +219,10 @@ could later leak. The other half of that is worth saying out loud: nothing check
 whose archive it was. No identity check is performed at any point, and
 contributing is not treated as proof of anything.</p>
 
-<p><b>Your posts are deleted, and that is not reversible.</b> Keeping only the
-descriptions and the numbers is the point of the design, but it has a real cost:
-if the instructions given to the model are ever changed, everyone has to
-contribute again. There is nothing left to quietly re-run, because the inputs are
-gone. That is the trade, stated plainly.</p>
+<p><b>Your complete archive never leaves your device.</b> The reviewed sample is
+stored privately while it is processed and deleted after a successful profile
+and receipt have been written. The model-written descriptions and map
+coordinates remain public until you ask to be removed.</p>
 
 <!-- static text is true whichever way the file goes; the script replaces it
      with the actual counts once the file has been read -->
@@ -264,74 +251,46 @@ removed.</strong> No reason needed and none will be asked for.</p>
 
 <div class="prose">
 
-<p>You ask X for a copy of your archive. A few days later they send you a file.
-You drop that file onto this page. Nothing leaves your computer when you do that
-&mdash; the file is opened and read inside your own browser.</p>
+<p>The archive is opened and cut down in the contributor's browser. Retweets,
+link-only posts, and posts under five words are removed. Self-reply threads are
+reconstructed. A fixed 10,000-word budget is sampled across the most recent
+three years so verbosity and one unusually active month do not decide the map.</p>
 
-<p>Most of the archive is then thrown away. Reposts of other people's writing go,
-because they are not your words. Posts under five words go. Posts that are
-nothing but a link go. Where you replied to yourself over and over, that chain is
-stitched back into a single piece of writing, because that is how it was meant to
-be read. From what survives, about 400 pieces are picked, spread evenly across
-the years, so that one loud month cannot speak for you.</p>
-
-<p>Those 400 pieces are handed to a language model &mdash; a program that reads
-text and writes text back. It is the same program every time, given the same
-instructions every time, so that two people are described on the same terms. It
-writes five short descriptions of you:</p>
+<p>The reviewed sample is handed to the same fixed language model under the same
+instructions for everyone. It writes three descriptions:</p>
 
 <ul>
 <li>what you keep returning to</li>
 <li>what you actually think</li>
 <li>how you think the world works &mdash; what causes what</li>
-<li>your temperament</li>
-<li>which ways of arguing you warm to, and which you cannot stand</li>
 </ul>
 
-<p>Each of those five descriptions is then turned into a long list of numbers.
+<p>Each description is then turned into a long list of numbers.
 That conversion is called an <i>embedding</i>. The arrangement is built so that
 two pieces of writing that say similar things come out with similar numbers.
 That is the entire trick: similar writing, similar numbers. Once you have
 numbers, closeness is just arithmetic.</p>
 
-<p>Then your posts are deleted. What is kept is the five descriptions and the
-five lists of numbers. The archive is gone, and it cannot be reconstructed from
-what is kept. That is a design choice with a cost attached: if the instructions
-to the model are ever improved, everyone has to contribute again, because there
-is nothing left to re-read.</p>
+<p>After extraction and a quality check, the sample is deleted. What remains is
+the three descriptions, their numerical representations, a consent receipt
+without posts, and the chosen public name.</p>
 
 <p>People whose numbers land close together are neighbours. You see their names,
 their rank, and a score, and never a reason for any of it. The descriptions those
-numbers were made from are published in full on
-<a href="profiles.html">their own page</a>, but nothing on the map is annotated
-with them, and no rank here arrives with an explanation attached.</p>
+numbers were made from are retained to make the map, not displayed as labels or
+attached to a rank as an explanation.</p>
 
-<p>The picture at the top of this page is worked out three times over: once for
-each corner of the triangle. Those three arrangements are settled in advance and
-then left alone. As you move the dot, each person slides between their three
-places, in proportion to how much each corner counts at that moment. Nothing is
-being recalculated while you drag &mdash; you are looking at a blend of three
-fixed pictures. That is why points glide rather than jump, and why dragging back
-puts everybody exactly where they were.</p>
+<p>The picture is worked out twice: once from recurring subjects, and once from
+the equal-weight combination of positions and causal explanations. Moving the
+dial blends those two settled arrangements, so points glide rather than jump.</p>
 
-<h4>Where this actually stands</h4>
+<h4>What has been measured</h4>
 
-<p>It does not work yet, and it might not. Two questions have to be answered with
-numbers before any of this is worth showing:</p>
-
-<p><b>Does the same archive describe the same person twice?</b> The model is run
-several times over the same posts. If the five descriptions come out meaningfully
-different each time, then the description is about the run, not about you, and
-everything downstream is noise. There is a threshold this has to clear, and it
-has not been measured yet.</p>
-
-<p><b>Do the five descriptions say five different things?</b> If what you return
-to, what you think, and how you argue all turn out to be the same measurement
-wearing three hats, then the triangle at the top of this page is decoration and should be removed
-rather than dressed up. Also not measured yet.</p>
-
-<p>Until both are answered, there is no map, and the honest thing to do is say so
-at the top of the page rather than at the bottom.</p>
+<p>Two non-overlapping 10,000-word samples of five people were independently
+placed against the same eleven-person reference map. Both lenses retained 73%
+of their top-three neighbors. Attention retained the exact top neighbor 60% of
+the time; Ideology retained it in all five cases. This is still a small cohort,
+so the arrangement above remains visibly marked provisional.</p>
 
 </div>
 
@@ -343,8 +302,8 @@ at the top of the page rather than at the bottom.</p>
 (function () {
 "use strict";
 
-var AXES = ["TOPIC", "WORLDVIEW", "STYLE"];
-var AXIS_LABEL = { TOPIC: "Topic", WORLDVIEW: "Worldview", STYLE: "Style" };
+var AXES = ["TOPIC", "WORLDVIEW"];
+var AXIS_LABEL = { TOPIC: "Attention", WORLDVIEW: "Ideology" };
 var TOP_N = 20;         // the longest the neighbour list is ever allowed to be
 var GRID = 24;          // resolution of the sweep that finds the always-near set
 
@@ -372,12 +331,12 @@ var seeds = 0, contributed = 0;
 var seedsDominant = false;   // seeded is the norm here, not the exception
 var axisViews = {};     // axis -> [view names], read from the file, never hardcoded
 var focus = 0;
-var W = [1 / 3, 1 / 3, 1 / 3];
+var W = [0.5, 0.5];
 var axisScore = null;   // axis -> Float64Array over people, relative to focus
 var score = null;       // current combined score per person
 var order = [];         // people sorted by score, focus removed
 var rankOf = null;      // person -> 1-based rank, 0 if outside the list
-var invariant = null;   // Uint8Array flag: in the list everywhere in the triangle
+var invariant = null;   // Uint8Array flag: in the list everywhere on the dial
 var invariantCount = 0;
 var hot = -1;           // hovered person
 var corners = null;     // one settled layout per axis, or null if the file has none
@@ -386,15 +345,11 @@ var rows = [];          // the 20 reused table rows; declared here, with the res
                         // of the state, because start() must never depend on how
                         // far down this file execution happens to have got
 
-var svg = document.getElementById("triangle");
+var lens = document.getElementById("lens");
 var canvas = document.getElementById("map");
 var ctx = canvas.getContext("2d");
 var tip = document.getElementById("tip");
 var pts = [];           // drawn screen coords, for hit testing
-
-// triangle geometry, in the svg's own units. Equilateral, and inset far enough
-// that the corner names do not run off the edge of the box.
-var V = [[150, 28], [40, 219], [260, 219]];   // TOPIC, WORLDVIEW, STYLE
 
 // ---------------------------------------------------------------- colours
 function cssVar(name) {
@@ -461,14 +416,14 @@ function start(doc) {
   readColours();
   if (window.matchMedia) {
     var mq = window.matchMedia("(prefers-color-scheme: dark)");
-    var onScheme = function () { readColours(); drawTriangle(); drawMap(); };
+    var onScheme = function () { readColours(); drawMap(); };
     if (mq.addEventListener) mq.addEventListener("change", onScheme);
     else if (mq.addListener) mq.addListener(onScheme);
   }
 
   buildList();
   sizeCanvas();
-  wireTriangle();
+  wireLens();
   wirePresets();
   wireMapHover();
   window.addEventListener("resize", function () { sizeCanvas(); drawMap(); });
@@ -562,16 +517,14 @@ function describeCohort() {
   } else if (seeds === 0) {
     line.innerHTML = "The map above holds " + count(N, "person", "people") +
       ", all contributed. None of them came through the steps below, because " +
-      "the steps below do not exist yet.";
+      ". Contributions are open below.";
   } else if (contributed === 0) {
     line.innerHTML = "The map above holds " + count(N, "person", "people") +
-      ", every one of them seeded from a public archive. Nobody came through " +
-      "the steps below, because the steps below do not exist yet.";
+      ", every one of them seeded from a public archive. Contributions are now open.";
   } else {
     line.innerHTML = "The map above holds " + count(N, "person", "people") +
       ": " + seeds + " seeded from a public archive, " + contributed +
-      " contributed. None of them came through the steps below, because the " +
-      "steps below do not exist yet.";
+      " contributed. Contributions are now open.";
   }
 
   var said;
@@ -626,9 +579,9 @@ function describeLegend() {
 }
 
 // ---------------------------------------------------------------- layouts
-// The map has one settled arrangement per corner of the triangle, worked out
+// The map has one settled arrangement per end of the lens dial, worked out
 // in advance. Where the dot sits decides how much of each arrangement you see:
-// a point's position is the weighted average of its three positions, using the
+// a point's position is the weighted average of its two positions, using the
 // same weights that order the list. That is smooth, it never jumps, and it is
 // reversible — drag back and everyone returns to exactly where they were.
 //
@@ -655,7 +608,7 @@ function readCornerLayouts() {
 function computeFrame() {
   // One transform for the whole session, taken from the extremes of every
   // arrangement the map can show. A blended position is a weighted average of
-  // three fixed points, so it can never leave that box. Re-fitting the box per
+  // two fixed points, so it can never leave that box. Re-fitting the box per
   // frame would zoom the map under the reader's hand, which is the same
   // disorientation by another route.
   var sets = corners || [D.layout];
@@ -686,12 +639,12 @@ function positions() {
   out.length = 0;
   var i;
   if (corners) {
-    var A = corners[0], B = corners[1], S = corners[2];
-    var w0 = W[0], w1 = W[1], w2 = W[2];
+    var A = corners[0], B = corners[1];
+    var w0 = W[0], w1 = W[1];
     for (i = 0; i < N; i++) {
       out.push([
-        (w0 * A[i][0] + w1 * B[i][0] + w2 * S[i][0]) * f.s + f.ox,
-        (w0 * A[i][1] + w1 * B[i][1] + w2 * S[i][1]) * f.s + f.oy
+        (w0 * A[i][0] + w1 * B[i][0]) * f.s + f.ox,
+        (w0 * A[i][1] + w1 * B[i][1]) * f.s + f.oy
       ]);
     }
   } else {
@@ -705,10 +658,10 @@ function describeMotion() {
   var el = document.getElementById("motionnote");
   if (!el) return;
   el.innerHTML = corners
-    ? "The map slides as you drag. Each corner has its own settled arrangement, " +
+    ? "The map slides with the dial. Each lens has its own settled arrangement, " +
       "worked out once and never recomputed; in between, everyone sits at the " +
-      "weighted average of their three places. So points glide, and glide back " +
-      "if you drag back &mdash; they never jump or swap sides."
+      "weighted average of their two places. So points glide, and glide back " +
+      "when the dial moves back &mdash; they never jump or swap sides."
     : "This file carries a single fixed arrangement, so the map does not move. " +
       "Dragging the dot changes which points light up, not where they sit.";
 }
@@ -735,9 +688,9 @@ function computeAxisScores(f) {
 }
 
 function combine(w, into) {
-  var a = axisScore.TOPIC, b = axisScore.WORLDVIEW, c = axisScore.STYLE;
+  var a = axisScore.TOPIC, b = axisScore.WORLDVIEW;
   var out = into || new Float64Array(N);
-  for (var i = 0; i < N; i++) out[i] = w[0] * a[i] + w[1] * b[i] + w[2] * c[i];
+  for (var i = 0; i < N; i++) out[i] = w[0] * a[i] + w[1] * b[i];
   return out;
 }
 
@@ -758,7 +711,7 @@ function topSet(w, sink) {
 }
 
 function computeInvariant() {
-  // A sweep of the whole triangle. The combined score is a weighted sum, so it
+  // A sweep of the whole dial. The combined score is a weighted sum, so it
   // moves smoothly as the dot moves; a grid this fine does not miss anyone who
   // drops out somewhere in between. Only runs when the focus person changes.
   invariant = new Uint8Array(N);
@@ -771,11 +724,8 @@ function computeInvariant() {
   var counts = new Int32Array(N);
   var points = 0;
   for (var i = 0; i <= GRID; i++) {
-    for (var j = 0; j <= GRID - i; j++) {
-      var k = GRID - i - j;
-      topSet([i / GRID, j / GRID, k / GRID], counts);
-      points++;
-    }
+    topSet([i / GRID, 1 - i / GRID], counts);
+    points++;
   }
   for (var p = 0; p < N; p++) {
     if (counts[p] === points) { invariant[p] = 1; invariantCount++; }
@@ -834,7 +784,7 @@ function update() {
       row.r.textContent = String(i + 1);
       row.k.textContent = invariant[p] ? "⊙" : "";
       row.k.title = invariant[p]
-        ? "in your nearest " + LIST_N + " everywhere in the triangle" : "";
+        ? "in your nearest " + LIST_N + " at every lens setting" : "";
       row.h.textContent = "@" + D.people[p].handle + tierMark(D.people[p]);
       row.s.textContent = score[p].toFixed(2);
       row.tr.style.display = "";
@@ -847,10 +797,10 @@ function update() {
 
   var pct = W.map(function (x) { return Math.round(x * 100); });
   document.getElementById("weights").innerHTML =
-    "Topic <b>" + pct[0] + "%</b> &middot; Worldview <b>" + pct[1] +
-    "%</b> &middot; Style <b>" + pct[2] + "%</b>";
-  svg.setAttribute("aria-valuetext",
-    "topic " + pct[0] + " percent, worldview " + pct[1] + " percent, style " + pct[2] + " percent");
+    "Attention <b>" + pct[0] + "%</b> &middot; Ideology <b>" + pct[1] + "%</b>";
+  lens.value = String(pct[1]);
+  lens.setAttribute("aria-valuetext",
+    "attention " + pct[0] + " percent, ideology " + pct[1] + " percent");
 
   var inv = document.getElementById("invline");
   var me = esc(D.people[focus].handle);
@@ -866,7 +816,7 @@ function update() {
         me + " everywhere until there are more people to fall out.";
   } else if (invariantCount === 0) {
     inv.innerHTML = "<b>Nobody</b> stays in the nearest " + LIST_N +
-      " across the whole triangle for @" + me + ".";
+      " across the whole dial for @" + me + ".";
   } else {
     inv.innerHTML = "<b>" + count(invariantCount, "person", "people") +
       "</b> stay in the nearest " + LIST_N + " for @" + me +
@@ -874,91 +824,14 @@ function update() {
       "on the map, marked in the list.";
   }
 
-  drawTriangle();
   drawMap();
 }
 
-// ---------------------------------------------------------------- triangle
-function drawTriangle() {
-  var p = [
-    W[0] * V[0][0] + W[1] * V[1][0] + W[2] * V[2][0],
-    W[0] * V[0][1] + W[1] * V[1][1] + W[2] * V[2][1]
-  ];
-  var lines = "";
-  for (var i = 0; i < 3; i++) {
-    lines += '<line x1="' + p[0] + '" y1="' + p[1] + '" x2="' + V[i][0] + '" y2="' +
-      V[i][1] + '" stroke="' + C.rule + '" stroke-width="1" stroke-dasharray="3 3"/>';
-  }
-  svg.innerHTML =
-    '<polygon points="' + V.map(function (v) { return v.join(","); }).join(" ") +
-      '" fill="' + C.panel + '" stroke="' + C.rule + '" stroke-width="1.5"/>' +
-    lines +
-    '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="8" fill="' + C.mark +
-      '" stroke="' + C.bg + '" stroke-width="2"/>' +
-    '<text x="150" y="18" text-anchor="middle" font-size="12" fill="' + C.fg + '">TOPIC</text>' +
-    '<text x="40" y="238" text-anchor="middle" font-size="12" fill="' + C.fg + '">WORLDVIEW</text>' +
-    '<text x="260" y="238" text-anchor="middle" font-size="12" fill="' + C.fg + '">STYLE</text>';
-}
-
-function baryFromXY(x, y) {
-  var x1 = V[0][0], y1 = V[0][1], x2 = V[1][0], y2 = V[1][1], x3 = V[2][0], y3 = V[2][1];
-  var det = (y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3);
-  var a = ((y2 - y3) * (x - x3) + (x3 - x2) * (y - y3)) / det;
-  var b = ((y3 - y1) * (x - x3) + (x1 - x3) * (y - y3)) / det;
-  var c = 1 - a - b;
-  // outside the triangle: clip the negative parts away and renormalise, which
-  // slides the dot onto the nearest edge or corner rather than letting go
-  a = Math.max(0, a); b = Math.max(0, b); c = Math.max(0, c);
-  var s = a + b + c;
-  return s > 0 ? [a / s, b / s, c / s] : [1 / 3, 1 / 3, 1 / 3];
-}
-
-function svgPoint(ev) {
-  var r = svg.getBoundingClientRect();
-  var vb = svg.viewBox.baseVal;
-  return [(ev.clientX - r.left) / r.width * vb.width, (ev.clientY - r.top) / r.height * vb.height];
-}
-
-function wireTriangle() {
-  var pending = false, dragging = false;
-  function apply(ev) {
-    var p = svgPoint(ev);
-    W = baryFromXY(p[0], p[1]);
-    if (!pending) {
-      pending = true;
-      requestAnimationFrame(function () { pending = false; update(); });
-    }
-  }
-  // capture can throw if the pointer id is not currently active; losing capture
-  // is survivable, so it must not take the drag down with it
-  function capture(on, id) {
-    try { on ? svg.setPointerCapture(id) : svg.releasePointerCapture(id); } catch (e) {}
-  }
-  svg.addEventListener("pointerdown", function (ev) {
-    dragging = true;
-    capture(true, ev.pointerId);
-    svg.focus();
-    apply(ev);
-    ev.preventDefault();
-  });
-  svg.addEventListener("pointermove", function (ev) { if (dragging) { apply(ev); ev.preventDefault(); } });
-  svg.addEventListener("pointerup", function (ev) { dragging = false; capture(false, ev.pointerId); });
-  svg.addEventListener("pointercancel", function () { dragging = false; });
-
-  // keyboard: nudge weight between the axes without a pointing device
-  svg.addEventListener("keydown", function (ev) {
-    var step = 0.05, w = W.slice(), moved = true;
-    if (ev.key === "ArrowUp") { w[0] += step; w[1] -= step / 2; w[2] -= step / 2; }
-    else if (ev.key === "ArrowDown") { w[0] -= step; w[1] += step / 2; w[2] += step / 2; }
-    else if (ev.key === "ArrowLeft") { w[1] += step; w[2] -= step; }
-    else if (ev.key === "ArrowRight") { w[2] += step; w[1] -= step; }
-    else if (ev.key === "Home") { w = [1 / 3, 1 / 3, 1 / 3]; }
-    else moved = false;
-    if (!moved) return;
-    ev.preventDefault();
-    for (var i = 0; i < 3; i++) w[i] = Math.max(0, w[i]);
-    var s = w[0] + w[1] + w[2];
-    W = [w[0] / s, w[1] / s, w[2] / s];
+// ---------------------------------------------------------------- lens dial
+function wireLens() {
+  lens.addEventListener("input", function () {
+    var ideology = Number(lens.value) / 100;
+    W = [1 - ideology, ideology];
     update();
   });
 }
