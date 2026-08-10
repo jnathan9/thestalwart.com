@@ -16,6 +16,7 @@
   const drop = $("drop");
   const endpoint = document.querySelector('meta[name="mmn-submit-endpoint"]')?.content.trim() || "";
   let prepared = null;
+  let statusTimer = null;
 
   if (!endpoint) $("submit").textContent = "Download contribution packet";
 
@@ -391,10 +392,14 @@
         downloadPacket(packet);
         receipt = packet.processing.sample_sha256.slice(0, 16);
         $("done").querySelector("h2").textContent = "Contribution packet saved";
-        $("done").querySelector("p:last-child").textContent = "Send the downloaded JSON file to the pilot organizer. It contains the reviewed sample—not your complete archive.";
+        $("processing-status").textContent = "Send the downloaded JSON file to the pilot organizer. It contains the reviewed sample—not your complete archive.";
       }
       $("receipt").textContent = receipt;
       $("done").hidden = false;
+      if (endpoint) {
+        history.replaceState(null, "", `${location.pathname}?receipt=${encodeURIComponent(receipt)}`);
+        watchStatus(receipt);
+      }
       setStatus("submit-status", endpoint ? "Received." : "Downloaded.", "good");
       $("done").scrollIntoView({ behavior: "smooth" });
     } catch (error) {
@@ -403,10 +408,38 @@
     }
   }
 
+  async function refreshStatus(receipt) {
+    try {
+      const response = await fetch(`${endpoint}/${receipt}`, { cache: "no-store" });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Status unavailable.");
+      $("processing-status").textContent = result.message || "Status unavailable.";
+      if (result.status === "live") {
+        $("map-link").hidden = false;
+        clearInterval(statusTimer);
+      } else if (result.status === "failed") {
+        clearInterval(statusTimer);
+      }
+    } catch {
+      $("processing-status").textContent = "Your contribution was received. Its current status could not be loaded.";
+    }
+  }
+
+  function watchStatus(receipt) {
+    if (!endpoint || !/^[a-f0-9]{32}$/.test(receipt)) return;
+    clearInterval(statusTimer);
+    $("receipt").textContent = receipt;
+    $("done").hidden = false;
+    refreshStatus(receipt);
+    statusTimer = setInterval(() => refreshStatus(receipt), 10_000);
+  }
+
   for (const event of ["dragenter", "dragover"]) drop.addEventListener(event, (e) => { e.preventDefault(); drop.classList.add("drag"); });
   for (const event of ["dragleave", "drop"]) drop.addEventListener(event, (e) => { e.preventDefault(); drop.classList.remove("drag"); });
   drop.addEventListener("drop", (event) => prepareFiles(event.dataTransfer.files));
   fileInput.addEventListener("change", () => prepareFiles(fileInput.files));
   for (const id of ["map-name", "own", "model", "publish"]) $(id).addEventListener("input", updateSubmit);
   $("submit").addEventListener("click", submit);
+  const priorReceipt = new URLSearchParams(location.search).get("receipt") || "";
+  watchStatus(priorReceipt);
 })();

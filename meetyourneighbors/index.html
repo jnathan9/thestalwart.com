@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="mmn-map-endpoint" content="https://stalwart-counter.pages.dev/api/map">
 <title>Meet Your Neighbors</title>
 <style>
 :root {
@@ -173,6 +174,7 @@ h1 {
   background: var(--bg);
   font-size: 13px;
   line-height: 1.35;
+  white-space: pre-line;
   pointer-events: none;
 }
 
@@ -263,7 +265,8 @@ footer {
 <header class="top">
   <div class="intro">
     <h1>Meet Your Neighbors</h1>
-    <p>Meet Your Neighbors is a new kind of political compass. The goal is not to identify your neighborhood, but to identify your neighbors. It works like this. A user uploads their tweets (or it’s drawn from public archives). A model then reads through the archives, and produces a series of statements summarizing their views, their interests, and their claims. These short summaries are then run through an embedding model, plotting the user on a series of coordinates. The map reveals where they land, and who is nearby. Move the slider to adjust between finding similar beliefs or similar interests.</p>
+    <p>Meet Your Neighbors is a new kind of political compass. The goal isn't to come up with random categories like "post-populist socialist" or "Liberal Cosmopolitan Conservative", but rather to simply identify who talks and thinks like you. In other words, the goal is to identify your neighbors without naming your neighborhood.</p>
+    <p>After a user uploads their archives, a model then reads through them and produces a series of statements summarizing their worldview and interests. These short summaries are then run through an embedding model, plotting the user on a series of coordinates. The map reveals where they land, and who is nearby. Move the slider to adjust between finding similar beliefs or similar interests.</p>
   </div>
   <a class="upload" href="contribute.html">Upload your archive</a>
 </header>
@@ -330,6 +333,7 @@ var lens = document.getElementById("lens");
 var list = document.getElementById("neighbor-list");
 var tip = document.getElementById("tip");
 var css = {};
+var mapEndpoint = document.querySelector('meta[name="mmn-map-endpoint"]')?.content.trim() || "";
 
 function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -343,11 +347,14 @@ function readColors() {
   css.faint = cssVar("--faint");
 }
 
-fetch("data.json", { cache: "no-cache" })
-  .then(function (response) {
-    if (!response.ok) throw new Error("data.json returned " + response.status);
+function fetchMap(url) {
+  return fetch(url, { cache: "no-cache" }).then(function (response) {
+    if (!response.ok) throw new Error(url + " returned " + response.status);
     return response.json();
-  })
+  });
+}
+
+(mapEndpoint ? fetchMap(mapEndpoint).catch(function () { return fetchMap("data.json"); }) : fetchMap("data.json"))
   .then(start)
   .catch(function (error) {
     document.getElementById("error").textContent = "The map could not be loaded.";
@@ -373,7 +380,7 @@ function start(data) {
   });
 
   for (var i = 0; i < N; i++) {
-    if (String(D.people[i].handle).toLowerCase() === "joe") {
+    if (String(D.people[i].handle).toLowerCase() === "thestalwart") {
       focus = i;
       break;
     }
@@ -411,14 +418,150 @@ function start(data) {
 }
 
 function readLayouts() {
-  if (!D.layouts) return null;
-  var result = [];
-  for (var i = 0; i < AXES.length; i++) {
-    var layout = D.layouts[AXES[i]];
-    if (!layout || layout.length !== N) return null;
-    result.push(layout);
+  if (D.layouts) {
+    var stored = [];
+    for (var i = 0; i < AXES.length; i++) {
+      var layout = D.layouts[AXES[i]];
+      if (!layout || layout.length !== N) return deriveLayouts();
+      stored.push(layout);
+    }
+    return stored;
   }
-  return result;
+  return deriveLayouts();
+}
+
+function combinedSimilarity(views) {
+  var matrix = Array.from({ length: N }, function () { return new Float64Array(N); });
+  for (var v = 0; v < views.length; v++) {
+    var source = D.similarity[views[v]];
+    for (var i = 0; i < N; i++) {
+      for (var j = 0; j < N; j++) matrix[i][j] += Number(source[i][j] || 0) / views.length;
+    }
+  }
+  return matrix;
+}
+
+function mdsLayout(views) {
+  if (N < 3) return Array.from({ length: N }, function () { return [0, 0]; });
+  var similarity = combinedSimilarity(views);
+  var maximum = -Infinity;
+  for (var i = 0; i < N; i++) {
+    for (var j = i + 1; j < N; j++) maximum = Math.max(maximum, similarity[i][j]);
+  }
+  var squared = Array.from({ length: N }, function () { return new Float64Array(N); });
+  var rowMeans = new Float64Array(N);
+  var grandMean = 0;
+  for (var r = 0; r < N; r++) {
+    for (var c = 0; c < N; c++) {
+      var distance = r === c ? 0 : maximum - similarity[r][c];
+      squared[r][c] = distance * distance;
+      rowMeans[r] += squared[r][c] / N;
+      grandMean += squared[r][c] / (N * N);
+    }
+  }
+  var gram = Array.from({ length: N }, function () { return new Float64Array(N); });
+  var shift = 0;
+  for (var a = 0; a < N; a++) {
+    var absoluteRow = 0;
+    for (var b = 0; b < N; b++) {
+      gram[a][b] = -0.5 * (squared[a][b] - rowMeans[a] - rowMeans[b] + grandMean);
+      absoluteRow += Math.abs(gram[a][b]);
+    }
+    shift = Math.max(shift, absoluteRow);
+  }
+
+  function eigenvector(seed, previous) {
+    var vector = new Float64Array(N);
+    for (var k = 0; k < N; k++) vector[k] = Math.sin((k + 1) * (seed + 1.618));
+    for (var iteration = 0; iteration < 160; iteration++) {
+      if (previous) {
+        var projection = 0;
+        for (var p = 0; p < N; p++) projection += vector[p] * previous[p];
+        for (var q = 0; q < N; q++) vector[q] -= projection * previous[q];
+      }
+      var next = new Float64Array(N);
+      for (var x = 0; x < N; x++) {
+        next[x] = shift * vector[x];
+        for (var y = 0; y < N; y++) next[x] += gram[x][y] * vector[y];
+      }
+      if (previous) {
+        var removal = 0;
+        for (var u = 0; u < N; u++) removal += next[u] * previous[u];
+        for (var w = 0; w < N; w++) next[w] -= removal * previous[w];
+      }
+      var norm = 0;
+      for (var z = 0; z < N; z++) norm += next[z] * next[z];
+      norm = Math.sqrt(norm) || 1;
+      for (var h = 0; h < N; h++) vector[h] = next[h] / norm;
+    }
+    return vector;
+  }
+
+  function eigenvalue(vector) {
+    var value = 0;
+    for (var i1 = 0; i1 < N; i1++) {
+      for (var j1 = 0; j1 < N; j1++) value += vector[i1] * gram[i1][j1] * vector[j1];
+    }
+    return Math.max(0, value);
+  }
+
+  var first = eigenvector(1, null);
+  var second = eigenvector(2, first);
+  var scaleFirst = Math.sqrt(eigenvalue(first));
+  var scaleSecond = Math.sqrt(eigenvalue(second));
+  var coordinates = [];
+  var span = 0;
+  for (var n = 0; n < N; n++) {
+    var point = [first[n] * scaleFirst, second[n] * scaleSecond];
+    coordinates.push(point);
+    span = Math.max(span, Math.abs(point[0]), Math.abs(point[1]));
+  }
+  if (span) for (var s = 0; s < N; s++) { coordinates[s][0] /= span; coordinates[s][1] /= span; }
+  return coordinates;
+}
+
+function alignLayout(coords, reference) {
+  var a = 0, b = 0, c = 0, d = 0;
+  for (var i = 0; i < N; i++) {
+    a += coords[i][0] * reference[i][0];
+    b += coords[i][0] * reference[i][1];
+    c += coords[i][1] * reference[i][0];
+    d += coords[i][1] * reference[i][1];
+  }
+  var rotationAngle = Math.atan2(c - b, a + d);
+  var reflectionAngle = Math.atan2(b + c, a - d);
+  var candidates = [
+    [[Math.cos(rotationAngle), -Math.sin(rotationAngle)], [Math.sin(rotationAngle), Math.cos(rotationAngle)]],
+    [[Math.cos(reflectionAngle), Math.sin(reflectionAngle)], [Math.sin(reflectionAngle), -Math.cos(reflectionAngle)]],
+  ];
+  function transformed(matrix) {
+    return coords.map(function (point) {
+      return [
+        point[0] * matrix[0][0] + point[1] * matrix[1][0],
+        point[0] * matrix[0][1] + point[1] * matrix[1][1],
+      ];
+    });
+  }
+  function error(points) {
+    var total = 0;
+    for (var k = 0; k < N; k++) total += (points[k][0] - reference[k][0]) ** 2 + (points[k][1] - reference[k][1]) ** 2;
+    return total;
+  }
+  var first = transformed(candidates[0]);
+  var second = transformed(candidates[1]);
+  return error(first) <= error(second) ? first : second;
+}
+
+function deriveLayouts() {
+  var reference = mdsLayout(D.views);
+  return AXES.map(function (axis) {
+    var views = D.views.filter(function (view) { return D.view_to_axis[view] === axis; });
+    return alignLayout(mdsLayout(views), reference);
+  });
+}
+
+function sourceLabel(person) {
+  return person.tier === "contributed" ? "Uploaded by participant" : "From a public archive";
 }
 
 function computeAxisScores(person) {
@@ -503,6 +646,7 @@ function renderList() {
     button.type = "button";
     button.className = "neighbor" + (person === hot ? " hot" : "");
     button.dataset.person = String(person);
+    button.title = "@" + D.people[person].handle + " · " + sourceLabel(D.people[person]);
 
     var rank = document.createElement("span");
     rank.className = "rank";
@@ -607,8 +751,10 @@ function drawMap() {
 
     ctx.beginPath();
     ctx.arc(points[person][0], points[person][1], radius, 0, Math.PI * 2);
-    ctx.fillStyle = highlighted ? css.mark : css.faint;
+    ctx.globalAlpha = highlighted ? 1 : .48;
+    ctx.fillStyle = css.mark;
     ctx.fill();
+    ctx.globalAlpha = 1;
 
     if (person === hot) {
       drawLabel("@" + D.people[person].handle, points[person][0], points[person][1] - radius - 6, false, rect.width);
@@ -671,7 +817,7 @@ function wireMap() {
     var rect = canvas.getBoundingClientRect();
     var x = event.clientX - rect.left;
     var y = event.clientY - rect.top;
-    tip.textContent = "@" + D.people[hot].handle;
+    tip.textContent = "@" + D.people[hot].handle + "\n" + sourceLabel(D.people[hot]);
     tip.style.display = "block";
     var tipWidth = tip.offsetWidth;
     var tipHeight = tip.offsetHeight;
