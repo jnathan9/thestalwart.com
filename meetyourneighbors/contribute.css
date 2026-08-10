@@ -70,9 +70,6 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .stat { padding: 10px; background: var(--panel); }
 .stat b { display: block; font: 600 1.1rem system-ui, sans-serif; }
 .stat span { color: var(--dim); font-size: .84rem; }
-.lens { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
-.lens div { padding: 12px; border-left: 3px solid var(--rule); background: var(--panel); }
-.lens b { font-family: system-ui, sans-serif; }
 label.field { display: block; margin: 13px 0; font-family: system-ui, sans-serif; font-size: .95rem; }
 label.field input { display: block; width: 100%; margin-top: 4px; padding: 7px; color: var(--fg); background: var(--bg); border: 1px solid var(--rule); }
 label.check { display: grid; grid-template-columns: 22px 1fr; gap: 7px; margin: 12px 0; }
@@ -83,4 +80,3 @@ summary { cursor: pointer; color: var(--dim); }
 .preview li { margin: 9px 0; padding-left: 5px; }
 .warning { border-left: 4px solid var(--accent); padding: 7px 10px; background: var(--panel); }
 .receipt { font-family: ui-monospace, Consolas, monospace; }
-@media (max-width: 540px) { .lens { grid-template-columns: 1fr; } }

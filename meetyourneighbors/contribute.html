@@ -10,14 +10,8 @@
 <body>
   <p><a href="./">&larr; back to the map</a></p>
   <h1>Meet Your Neighbors</h1>
-  <p class="lede">Find your neighbors, not your neighborhood.</p>
-
-  <div class="lens" aria-label="The two map lenses">
-    <div><b>Attention</b><br><span class="dim">What you keep returning to.</span></div>
-    <div><b>Ideology</b><br><span class="dim">What you believe and how you explain what causes what.</span></div>
-  </div>
-
-  <p>Contributions are open. Your archive is cut down inside your browser. Your complete archive never leaves your computer; only a sample of about 10,000 words is sent to a private processing queue.</p>
+  <p class="lede">Add yourself to the map.</p>
+  <p>Your complete archive stays on your computer. Only a sample of about 10,000 words is submitted.</p>
 
   <h2>1. Choose your archive</h2>
   <p>Use the ZIP that X gives you, or select the <code>tweets.js</code> files inside an extracted archive.</p>
@@ -56,11 +50,11 @@
       </label>
 
       <label class="check"><input id="own" type="checkbox"><span>I own this archive or have the right to contribute it.</span></label>
-      <label class="check"><input id="model" type="checkbox"><span>I understand that the sampled posts will be sent to an external language-model provider to infer my recurring topics, political positions, and causal beliefs.</span></label>
-      <label class="check"><input id="publish" type="checkbox"><span>I want the resulting profile and my chosen map name included on a public, unlabelled similarity map. I can ask to be removed later.</span></label>
+      <label class="check"><input id="model" type="checkbox"><span>I understand that the sample will be processed by an external language-model provider to place me on the map.</span></label>
+      <label class="check"><input id="publish" type="checkbox"><span>I want my chosen name and position included on the public, unlabelled map. The model output itself will not be published. I can ask to be removed later.</span></label>
     </div>
 
-    <p class="warning"><b>This is not anonymous.</b> Political beliefs are sensitive, and the model can be wrong. The sampled posts are deleted after extraction; the model-written descriptions and map coordinates are retained until you ask for removal.</p>
+    <p class="warning"><b>This is not anonymous.</b> Your position may reveal resemblance to other people. The sample is deleted after processing; the private comparison data and map position are retained until you ask for removal.</p>
     <button id="submit" class="primary" disabled>Contribute sample</button>
     <p id="submit-status" class="status" role="status"></p>
   </section>
@@ -69,7 +63,7 @@
     <h2>Contribution received</h2>
     <p>Keep this receipt in case you want to ask about or remove your contribution:</p>
     <p id="receipt" class="receipt"></p>
-    <p>Your sample is now waiting for extraction and a quality check. If it supports a comparable profile, your chosen name will be added to the public map. Keep the receipt if you need to ask about or remove it.</p>
+    <p>Your sample is waiting to be processed. If it produces a usable map position, your chosen name will be added. Keep the receipt if you need to ask about or remove it.</p>
   </section>
 
   <script src="contribute.js"></script>

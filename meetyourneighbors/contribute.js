@@ -304,7 +304,7 @@
       $("stat-dates").textContent = `${prepared.dateRange[0].getUTCFullYear()}–${prepared.dateRange[1].getUTCFullYear()}`;
       const warning = $("sample-warning");
       warning.hidden = sampledWords >= MIN_USABLE_WORDS;
-      warning.textContent = `This archive supplies only ${sampledWords.toLocaleString()} usable words. The pilot needs at least ${MIN_USABLE_WORDS.toLocaleString()} for a comparable profile.`;
+      warning.textContent = `This archive supplies only ${sampledWords.toLocaleString()} usable words. The map needs at least ${MIN_USABLE_WORDS.toLocaleString()} for a usable position.`;
       const preview = $("preview");
       preview.replaceChildren(...sample.map((doc) => {
         const item = document.createElement("li");

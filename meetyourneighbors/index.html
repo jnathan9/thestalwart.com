@@ -3,25 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Who Are Your Neighbors</title>
+<title>Meet Your Neighbors</title>
 <style>
-/* The rest of the site is bare HTML. Everything here is either the two colour
-   schemes or the parts a picture needs: the lens control, the map, the list. */
 :root {
-  --bg: #DDEEDD;
-  --fg: #000000;
-  --dim: #4a5a4a;
+  --bg: #ddeedd;
+  --fg: #000;
+  --dim: #526052;
   --rule: #9ab89a;
   --panel: #eaf4ea;
-  --link: #0000ee;
-  --mark: #b03000;      /* neighbours */
-  --mark-2: #7a4b00;    /* the person you are looking from */
-  --keep: #005f8a;      /* near you wherever the dot goes */
-  --faint: #8fa88f;     /* everyone else */
-  --warn-bg: #fff3cd;
-  --warn-fg: #4a3b00;
-  --warn-rule: #b8940a;
+  --mark: #b03000;
+  --focus: #7a4b00;
+  --faint: #8fa88f;
 }
+
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #10160f;
@@ -29,1026 +23,620 @@
     --dim: #9fb09c;
     --rule: #33452f;
     --panel: #18211a;
-    --link: #8ab4f8;
     --mark: #ff9166;
-    --mark-2: #ffd479;
-    --keep: #5ec8f0;
+    --focus: #ffd479;
     --faint: #4e6049;
-    --warn-bg: #2a2410;
-    --warn-fg: #f0dfa0;
-    --warn-rule: #7a6512;
   }
 }
-body { background: var(--bg); color: var(--fg); margin: 0 auto; padding: 0 18px 48px; max-width: 1180px; }
-a { color: var(--link); }
-hr { border: 0; border-top: 1px solid var(--rule); margin: 22px 0; }
-h2, h3 { font-weight: bold; }
-p, li { line-height: 1.5; }
-.prose { max-width: 640px; }
-.dim { color: var(--dim); }
-small { color: var(--dim); }
 
-.site-hero { text-align: left; padding: 28px 0 10px; }
-.site-hero h1 { margin: 0; max-width: 1120px; font-size: clamp(2rem, 4.2vw, 3.25rem); line-height: 1.02; }
-.eyebrow { margin: 0 0 10px; font: bold 12px system-ui, sans-serif; letter-spacing: .14em; color: var(--dim); }
-.lede { max-width: 720px; margin: 10px 0 8px; font-size: clamp(1rem, 2vw, 1.18rem); }
-
-/* honest, visible, and out of the way: one slim line, not a box in the hero slot.
-   Both states of the line use the same geometry. Only the colour changes, so a
-   file that turns out to be real does not silently lose the slot it was in. */
-.warn {
-  background: var(--warn-bg); color: var(--warn-fg);
-  border-left: 4px solid var(--warn-rule);
-  padding: 4px 10px; margin: 8px 0 10px; font-size: 92%;
+* { box-sizing: border-box; }
+body {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 22px 22px 36px;
+  color: var(--fg);
+  background: var(--bg);
+  font-family: Georgia, "Times New Roman", serif;
 }
-/* the same line, when it is stating where the data came from rather than
-   warning about it: it should read as a caption, not an alarm */
-.warn.calm { background: var(--panel); color: var(--dim); border-left-color: var(--rule); }
-[hidden] { display: none !important; }
-.hint { font-size: 92%; color: var(--dim); margin: 0 0 6px; }
 
-ol.steps > li { margin-bottom: 10px; }
-.join {
-  display: inline-block; padding: 12px 18px; margin: 0;
-  color: var(--bg); background: var(--fg); border: 1px solid var(--fg);
-  text-decoration: none; font: bold 15px system-ui, sans-serif; white-space: nowrap;
+a { color: inherit; }
+button, select, input { font: inherit; }
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  margin-bottom: 22px;
 }
-.join:hover { opacity: .82; }
 
-/* ---- the map section ---- */
-.map-section { margin-top: 8px; }
-.map-toolbar {
-  display: grid; grid-template-columns: minmax(220px, 280px) minmax(360px, 1fr);
-  gap: 28px; align-items: start; margin: 0 0 12px; padding: 10px 0;
-  border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4.2vw, 3.4rem);
+  line-height: 1;
+  letter-spacing: -.025em;
 }
-.controls { margin: 0; }
-.controls label, .lens-label { display: block; margin-bottom: 7px; font: bold 12px system-ui, sans-serif; letter-spacing: .04em; }
-.controls select { width: 100%; font: inherit; padding: 7px; background: var(--panel); color: var(--fg); border: 1px solid var(--rule); }
-.presets button {
-  font: inherit; font-size: 90%; margin: 0 4px 4px 0; padding: 3px 9px;
-  background: var(--panel); color: var(--fg); border: 1px solid var(--rule); cursor: pointer;
+
+.upload {
+  flex: 0 0 auto;
+  display: inline-block;
+  padding: 11px 15px;
+  border: 1px solid var(--fg);
+  color: var(--bg);
+  background: var(--fg);
+  text-decoration: none;
+  font-family: system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
 }
-.presets button:hover { border-color: var(--fg); }
 
-.map-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 26px; align-items: start; }
-.col-controls { min-width: 0; padding-left: 22px; border-left: 1px solid var(--rule); }
-.col-map { min-width: 0; }
+.upload:hover { opacity: .8; }
 
-.lens-control { max-width: none; padding: 0; }
-.lens-control input { width: 100%; accent-color: var(--mark); }
-.lens-ends { display: flex; justify-content: space-between; font: bold 12px system-ui,sans-serif; }
-.weights { display: inline-block; font-size: 95%; margin: 5px 12px 0 0; }
-.presets { display: inline; margin: 0; }
-
-#maprap { position: relative; }
-#map { width: 100%; height: clamp(520px, 58vw, 700px); display: block; background: var(--panel); border: 1px solid var(--rule); touch-action: none; }
-.map-label {
-  position: absolute; z-index: 2; pointer-events: none; padding: 4px 6px;
-  color: var(--dim); background: color-mix(in srgb, var(--panel) 88%, transparent);
-  font: bold 10px system-ui, sans-serif; letter-spacing: .09em;
+.controls {
+  display: grid;
+  grid-template-columns: minmax(210px, 280px) minmax(280px, 1fr);
+  gap: 30px;
+  align-items: end;
+  padding: 13px 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
 }
-.map-label.top { top: 10px; left: 11px; }
-.map-label.bottom { right: 10px; bottom: 9px; }
+
+.field-label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--dim);
+  font-family: system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+#who {
+  width: 100%;
+  padding: 8px 9px;
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  color: var(--fg);
+  background: var(--panel);
+}
+
+.lens input {
+  display: block;
+  width: 100%;
+  margin: 0;
+  accent-color: var(--mark);
+}
+
+.lens-ends {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  color: var(--dim);
+  font-family: system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 230px;
+  gap: 26px;
+  align-items: start;
+  margin-top: 18px;
+}
+
+#map-wrap { position: relative; min-width: 0; }
+#map {
+  display: block;
+  width: 100%;
+  height: clamp(570px, 66vw, 780px);
+  border: 1px solid var(--rule);
+  background: var(--panel);
+  touch-action: none;
+}
+
+.nearer {
+  position: absolute;
+  right: 10px;
+  bottom: 9px;
+  padding: 3px 5px;
+  color: var(--dim);
+  background: color-mix(in srgb, var(--panel) 90%, transparent);
+  font-family: system-ui, sans-serif;
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
 #tip {
-  position: absolute; pointer-events: none; display: none;
-  background: var(--bg); color: var(--fg); border: 1px solid var(--rule);
-  padding: 5px 8px; font-size: 85%; max-width: 240px; line-height: 1.35;
+  position: absolute;
+  z-index: 2;
+  display: none;
+  max-width: 220px;
+  padding: 5px 8px;
+  border: 1px solid var(--rule);
+  color: var(--fg);
+  background: var(--bg);
+  font-size: 13px;
+  line-height: 1.35;
+  pointer-events: none;
 }
 
-table.nb { border-collapse: collapse; width: 100%; font-size: 95%; }
-table.nb th { text-align: left; font-weight: bold; border-bottom: 1px solid var(--rule); padding: 3px 6px 3px 0; }
-table.nb td { padding: 2px 6px 2px 0; border-bottom: 1px solid var(--panel); }
-table.nb tr.hot td { background: var(--panel); }
-table.nb td.r { text-align: right; color: var(--dim); width: 2.2em; }
-table.nb td.s { text-align: right; font-family: ui-monospace, "Courier New", monospace; width: 4em; }
-table.nb td.k { width: 1.4em; color: var(--keep); font-weight: bold; }
-.keep { color: var(--keep); font-weight: bold; }
-.legend { font-size: 88%; color: var(--dim); margin-top: 8px; line-height: 1.6; }
-.legend span { white-space: nowrap; margin-right: 14px; }
-#err { color: var(--mark); }
-.side-upload { margin: 0 0 18px; padding: 14px; background: var(--panel); border: 1px solid var(--rule); }
-.side-upload h2 { margin: 0 0 5px; font-size: 1.12rem; }
-.side-upload p { margin: 0 0 11px; font-size: 93%; }
-.side-upload .join { display: block; padding: 10px 12px; text-align: center; white-space: normal; }
-.side-upload small { display: block; margin-top: 8px; line-height: 1.35; }
-.score-note { margin: 8px 0 18px; font-size: 88%; color: var(--dim); line-height: 1.45; }
-.map-notes { margin-top: 8px; }
-.map-notes .warn { margin-top: 8px; }
-.info-block { max-width: 700px; margin: 20px 0; }
-.info-block summary { cursor: pointer; font-size: 1.17em; font-weight: bold; }
-.info-block[open] summary { margin-bottom: 12px; }
+.neighbors {
+  min-width: 0;
+  padding-left: 20px;
+  border-left: 1px solid var(--rule);
+}
+
+.neighbors h2 {
+  margin: 2px 0 8px;
+  font-family: system-ui, sans-serif;
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+#neighbor-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#neighbor-list li { border-top: 1px solid var(--rule); }
+#neighbor-list li:last-child { border-bottom: 1px solid var(--rule); }
+
+.neighbor {
+  display: grid;
+  grid-template-columns: 2.1em 1fr;
+  gap: 4px;
+  width: 100%;
+  padding: 7px 2px;
+  border: 0;
+  color: var(--fg);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.neighbor:hover, .neighbor.hot { background: var(--panel); }
+.rank { color: var(--dim); text-align: right; padding-right: 5px; }
+
+#error {
+  margin: 12px 0 0;
+  color: var(--mark);
+  font-size: 14px;
+}
+
+footer {
+  margin-top: 18px;
+  color: var(--dim);
+  font-size: 13px;
+}
 
 @media (max-width: 760px) {
-  body { padding: 0 10px 36px; }
-  .site-hero { padding-top: 22px; }
-  .map-toolbar, .map-grid { grid-template-columns: 1fr; }
-  .map-toolbar { gap: 16px; }
-  .col-controls { padding: 18px 0 0; border-left: 0; border-top: 1px solid var(--rule); }
-  #map { height: min(82vw, 520px); min-height: 350px; }
+  body { padding: 16px 10px 30px; }
+  .top { align-items: flex-start; }
+  h1 { max-width: 520px; }
+  .upload { padding: 9px 11px; font-size: 12px; }
+  .controls, .main { grid-template-columns: 1fr; gap: 15px; }
+  #map { height: min(92vw, 600px); min-height: 390px; }
+  .neighbors { padding: 15px 0 0; border-left: 0; border-top: 1px solid var(--rule); }
+}
+
+@media (max-width: 470px) {
+  .top { display: block; }
+  .upload { margin-top: 15px; }
 }
 </style>
 </head>
 <body>
 
-<header class="site-hero">
-  <p class="eyebrow">MEET YOUR NEIGHBORS</p>
+<header class="top">
   <h1>Find your neighbors, not your neighborhood.</h1>
-  <p class="lede">There are no camps and no political directions&mdash;only
-  changing relationships between people.</p>
+  <a class="upload" href="contribute.html">Upload your archive</a>
 </header>
 
-<section class="map-section" aria-labelledby="map-title">
-<h2 id="map-title" hidden>Explore the map</h2>
-
-<div class="map-toolbar">
+<main>
   <div class="controls">
-    <label for="who">LOOKING FROM</label>
-    <select id="who"></select>
-  </div>
-  <div>
-    <span class="lens-label">WHAT COUNTS AS NEAR?</span>
-    <div class="lens-control">
+    <label>
+      <span class="field-label">You</span>
+      <select id="who" aria-label="Choose a person"></select>
+    </label>
+    <label class="lens">
+      <span class="field-label">Nearness</span>
       <input id="lens" type="range" min="0" max="100" value="50" step="1"
-             aria-label="Weighting between attention and ideology">
-      <div class="lens-ends"><span>ATTENTION</span><span>IDEOLOGY</span></div>
-    </div>
-    <p class="weights" id="weights">&nbsp;</p>
-    <p class="presets">
-      <button data-w="1,0">Attention</button><button data-w="0,1">Ideology</button><button data-w="0.5,0.5">Even</button>
-    </p>
+             aria-label="Weighting between topics and beliefs">
+      <span class="lens-ends"><span>Topics</span><span>Beliefs</span></span>
+    </label>
   </div>
-</div>
 
-<div class="map-grid">
-  <div class="col-map">
-    <div id="maprap">
-      <canvas id="map"></canvas>
-      <span class="map-label top">DIRECTION HAS NO MEANING</span>
-      <span class="map-label bottom">CLOSER = MORE ALIKE</span>
+  <div class="main">
+    <div id="map-wrap">
+      <canvas id="map" aria-label="Map of neighboring people"></canvas>
+      <span class="nearer">Nearer = more alike</span>
       <div id="tip"></div>
     </div>
-    <!-- built from the file: which marks are worth explaining depends on how
-         many people carry them -->
-    <p class="legend" id="legend">&nbsp;</p>
-    <p class="legend"><b>Attention</b> is what a person keeps coming back to.
-    <b>Ideology</b> is what they believe and how they explain what causes what.</p>
-    <p class="legend" id="motionnote">&nbsp;</p>
-    <div class="map-notes">
-      <p id="provline" hidden></p>
-      <p id="dataline" hidden></p>
-      <p class="legend">The underlying descriptions were written by a language
-      model from public posts and can be wrong. They are not shown as labels or
-      offered as explanations for anyone's position.</p>
-    </div>
-  </div>
 
-  <div class="col-controls">
-    <aside class="side-upload">
-      <h2>Put yourself on the map</h2>
-      <p>Choose your X archive, review the 10,000-word sample made in your
-      browser, and submit only when it looks right.</p>
-      <a class="join" href="contribute.html">Upload your X archive &rarr;</a>
-      <small>No sign-in. Your complete archive never leaves your device.</small>
+    <aside class="neighbors">
+      <h2>Neighbors</h2>
+      <ol id="neighbor-list"></ol>
+      <p id="error"></p>
     </aside>
-    <table class="nb">
-      <thead><tr><th></th><th></th><th id="nbhead">Nearest</th><th class="s" style="text-align:right">closeness</th></tr></thead>
-      <tbody id="nblist"></tbody>
-    </table>
-    <p id="err"></p>
-    <p class="score-note"><b>Closeness is a cohort percentile.</b> 92 means this
-    pair is closer than roughly 92% of all pairings on the map at this dial
-    setting. It is not probability, agreement, or an explanation.</p>
-    <p id="invline" class="dim">&nbsp;</p>
   </div>
-</div>
-</section>
+</main>
 
-<hr>
-
-<h3>What happens when you upload</h3>
-
-<div class="prose">
-
-<p><b>Contributions are open.</b> <span id="cohortline"></span></p>
-
-<ol class="steps">
-<li><b>Your browser prepares the sample.</b> It removes reposts, link-only posts,
-and very short posts, reconstructs self-reply threads, and spreads 10,000 words
-across the latest three years. You review the exact text before submitting.</li>
-
-<li><b>The sample is processed privately.</b> The same fixed model describes what
-you return to, what you believe, and how you explain what causes what. The sample
-is deleted after the profile passes its quality check.</li>
-
-<li><b>Your name is added without a label.</b> The descriptions become map
-coordinates, but they are never shown as an explanation of where you landed.</li>
-</ol>
-
-<p><b>There is no sign-in, ever.</b> The site will not ask you for a password,
-and there is nothing to log into, so it never holds a credential of yours that
-could later leak. The other half of that is worth saying out loud: nothing checks
-whose archive it was. No identity check is performed at any point, and
-contributing is not treated as proof of anything.</p>
-
-<p><b>Your complete archive never leaves your device.</b> The reviewed sample is
-stored privately while it is processed and deleted after a successful profile
-and receipt have been written. The model-written descriptions and map
-coordinates remain public until you ask to be removed.</p>
-
-<!-- static text is true whichever way the file goes; the script replaces it
-     with the actual counts once the file has been read -->
-<p id="seedpara">Some of the profiles on the map above were seeded rather than
-contributed, and are drawn as hollow circles. Those people uploaded nothing.
-Their posts were taken from a public archive by whoever built this page, and they
-did not choose to be here. They are marked differently for that reason and for no
-other.</p>
-
-<!-- static on purpose: the script rewrites #seedpara from the file's counts,
-     and this must survive that regardless of what the file says -->
-<p id="optout">The seeded profiles come from the
-<a href="https://www.community-archive.org/">Community Archive</a>, where those
-people published their whole posting history in the open for anyone to read and
-analyse. That is what it is there for. Being named on someone else's map of who
-resembles whom, and described on it in prose you did not write, is a further
-step, and nobody on this page agreed to it.
-<strong>So if you are on this map and would rather not be, say so and you will be
-removed.</strong> No reason needed and none will be asked for.</p>
-
-</div>
-
-<hr>
-
-<details class="info-block">
-<summary id="built">How the map is built</summary>
-
-<div class="prose">
-
-<p>The archive is opened and cut down in the contributor's browser. Retweets,
-link-only posts, and posts under five words are removed. Self-reply threads are
-reconstructed. A fixed 10,000-word budget is sampled across the most recent
-three years so verbosity and one unusually active month do not decide the map.</p>
-
-<p>The reviewed sample is handed to the same fixed language model under the same
-instructions for everyone. It writes three descriptions:</p>
-
-<ul>
-<li>what you keep returning to</li>
-<li>what you actually think</li>
-<li>how you think the world works &mdash; what causes what</li>
-</ul>
-
-<p>Each description is then turned into a long list of numbers.
-That conversion is called an <i>embedding</i>. The arrangement is built so that
-two pieces of writing that say similar things come out with similar numbers.
-That is the entire trick: similar writing, similar numbers. Once you have
-numbers, closeness is just arithmetic.</p>
-
-<p>After extraction and a quality check, the sample is deleted. What remains is
-the three descriptions, their numerical representations, a consent receipt
-without posts, and the chosen public name.</p>
-
-<p>People whose numbers land close together are neighbours. You see their names,
-their rank, and a cohort-relative closeness percentile, and never a reason for
-any of it. The descriptions those
-numbers were made from are retained to make the map, not displayed as labels or
-attached to a rank as an explanation.</p>
-
-<p>The picture is worked out twice: once from recurring subjects, and once from
-the equal-weight combination of positions and causal explanations. Moving the
-dial blends those two settled arrangements, so points glide rather than jump.</p>
-
-<h4>What has been measured</h4>
-
-<p>Two non-overlapping 10,000-word samples of five people were independently
-placed against the same eleven-person reference map. Both lenses retained 73%
-of their top-three neighbors. Attention retained the exact top neighbor 60% of
-the time; Ideology retained it in all five cases. This is still a small cohort,
-so the arrangement above remains visibly marked provisional.</p>
-
-</div>
-
-</details>
-
-<hr>
-
-<p><a href="/">&#8592; back to Joe's home page</a></p>
+<footer><a href="/">thestalwart.com</a></footer>
 
 <script>
 (function () {
 "use strict";
 
 var AXES = ["TOPIC", "WORLDVIEW"];
-var AXIS_LABEL = { TOPIC: "Attention", WORLDVIEW: "Ideology" };
-var TOP_N = 20;         // the longest the neighbour list is ever allowed to be
-var GRID = 24;          // resolution of the sweep that finds the always-near set
+var MAX_NEIGHBORS = 12;
+var HIGHLIGHT_NEIGHBORS = 6;
 
-// How many people it takes before the arrangement is worth reading as distance.
-// Every score in the file is standardised across the pairs in the file, and
-// there are only n(n-1)/2 of those: at nine people that is thirty-six, and a
-// standard deviation taken over thirty-six numbers moves on very little. The
-// map will still draw, and it will still look convincing, which is exactly why
-// the page has to say so.
-var PROVISIONAL_BELOW = 50;
-var SETTLED_AT = 150;   // the cohort size the design is actually aimed at
-
-// The always-near mark says: this person does not drop out of your list no
-// matter where the dot goes. That is only information if people *can* drop out
-// of the list. When the list holds everyone, or nearly everyone, marking is
-// vacuous — and vacuous here is worse than absent, because this is the mark the
-// whole page is built around. It needs a real pool of people outside the list.
-var INVARIANT_MARGIN = 5;
-
-var D = null;           // the loaded document
+var D = null;
 var N = 0;
-var LIST_N = 0;         // rows the list actually shows: min(TOP_N, everyone else)
-var invariantUseful = false;
-var seeds = 0, contributed = 0;
-var seedsDominant = false;   // seeded is the norm here, not the exception
-var axisViews = {};     // axis -> [view names], read from the file, never hardcoded
 var focus = 0;
-var W = [0.5, 0.5];
-var axisScore = null;   // axis -> Float64Array over people, relative to focus
-var score = null;       // current combined score per person
-var pairScores = [];    // all pair scores at this lens setting, for percentiles
-var order = [];         // people sorted by score, focus removed
-var rankOf = null;      // person -> 1-based rank, 0 if outside the list
-var invariant = null;   // Uint8Array flag: in the list everywhere on the dial
-var invariantCount = 0;
-var hot = -1;           // hovered person
-var corners = null;     // one settled layout per axis, or null if the file has none
-var frame = null;       // fixed canvas transform: {s, ox, oy}
-var rows = [];          // the 20 reused table rows; declared here, with the rest
-                        // of the state, because start() must never depend on how
-                        // far down this file execution happens to have got
+var weights = [0.5, 0.5];
+var axisViews = {};
+var axisScores = null;
+var scores = null;
+var order = [];
+var rankOf = null;
+var layouts = null;
+var frame = null;
+var points = [];
+var hot = -1;
 
-var lens = document.getElementById("lens");
 var canvas = document.getElementById("map");
 var ctx = canvas.getContext("2d");
+var select = document.getElementById("who");
+var lens = document.getElementById("lens");
+var list = document.getElementById("neighbor-list");
 var tip = document.getElementById("tip");
-var pts = [];           // drawn screen coords, for hit testing
+var css = {};
 
-// ---------------------------------------------------------------- colours
 function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
-var C = {};
-function readColours() {
-  C.fg = cssVar("--fg"); C.dim = cssVar("--dim"); C.rule = cssVar("--rule");
-  C.panel = cssVar("--panel"); C.mark = cssVar("--mark"); C.mark2 = cssVar("--mark-2");
-  C.keep = cssVar("--keep"); C.faint = cssVar("--faint"); C.bg = cssVar("--bg");
+
+function readColors() {
+  css.fg = cssVar("--fg");
+  css.panel = cssVar("--panel");
+  css.mark = cssVar("--mark");
+  css.focus = cssVar("--focus");
+  css.faint = cssVar("--faint");
 }
 
-// ---------------------------------------------------------------- load
 fetch("data.json", { cache: "no-cache" })
-  .then(function (r) {
-    if (!r.ok) throw new Error("data.json returned " + r.status);
-    return r.json();
+  .then(function (response) {
+    if (!response.ok) throw new Error("data.json returned " + response.status);
+    return response.json();
   })
   .then(start)
-  .catch(function (e) {
-    document.getElementById("err").textContent =
-      "Could not load data.json (" + e.message + "). Opening this file directly " +
-      "from disk will not work, because browsers block reading files that way. " +
-      "Serve the folder over http instead: python -m http.server 8000";
+  .catch(function (error) {
+    document.getElementById("error").textContent = "The map could not be loaded.";
+    console.error(error);
   });
 
-function start(doc) {
-  D = doc;
+function start(data) {
+  D = data;
   N = D.people.length;
-  AXES.forEach(function (a) { axisViews[a] = []; });
-  D.views.forEach(function (v) {
-    var a = D.view_to_axis[v];
-    if (axisViews[a]) axisViews[a].push(v);
+
+  AXES.forEach(function (axis) { axisViews[axis] = []; });
+  D.views.forEach(function (view) {
+    var axis = D.view_to_axis[view];
+    if (axisViews[axis]) axisViews[axis].push(view);
   });
 
-  // Everything about how the page describes itself is decided here, from the
-  // file, before anything is drawn. Nothing downstream carries a fixed count.
-  LIST_N = Math.max(1, Math.min(TOP_N, N - 1));
-  invariantUseful = (N - 1 - LIST_N) >= INVARIANT_MARGIN;
-  seeds = 0;
-  for (var s = 0; s < N; s++) if (D.people[s].tier === "seed") seeds++;
-  contributed = N - seeds;
-  seedsDominant = seeds > contributed;
-
-  corners = readCornerLayouts();
-  describeMotion();
-  describeData();
-  describeProvisional();
-  describeCohort();
-  describeLegend();
-  document.getElementById("nbhead").textContent =
-    LIST_N >= N - 1 ? "Everyone, ranked" : "Nearest " + LIST_N;
-
-  var sel = document.getElementById("who");
-  D.people.forEach(function (p, i) {
-    var o = document.createElement("option");
-    o.value = String(i);
-    o.textContent = "@" + p.handle + tierSuffix(p);
-    sel.appendChild(o);
+  layouts = readLayouts();
+  D.people.forEach(function (person, index) {
+    var option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = "@" + person.handle;
+    select.appendChild(option);
   });
-  var initialFocus = 0;
-  for (var p = 0; p < D.people.length; p++) {
-    if (String(D.people[p].handle).toLowerCase() === "joe") {
-      initialFocus = p;
+
+  for (var i = 0; i < N; i++) {
+    if (String(D.people[i].handle).toLowerCase() === "joe") {
+      focus = i;
       break;
     }
   }
-  sel.value = String(initialFocus);
-  sel.addEventListener("change", function () { setFocus(parseInt(sel.value, 10)); });
 
-  readColours();
+  select.value = String(focus);
+  select.addEventListener("change", function () {
+    setFocus(Number(select.value));
+  });
+  lens.addEventListener("input", function () {
+    var beliefWeight = Number(lens.value) / 100;
+    weights = [1 - beliefWeight, beliefWeight];
+    lens.setAttribute(
+      "aria-valuetext",
+      Math.round(weights[0] * 100) + "% topics, " + Math.round(weights[1] * 100) + "% beliefs"
+    );
+    update();
+  });
+
+  readColors();
   if (window.matchMedia) {
-    var mq = window.matchMedia("(prefers-color-scheme: dark)");
-    var onScheme = function () { readColours(); drawMap(); };
-    if (mq.addEventListener) mq.addEventListener("change", onScheme);
-    else if (mq.addListener) mq.addListener(onScheme);
+    var scheme = window.matchMedia("(prefers-color-scheme: dark)");
+    var updateScheme = function () { readColors(); drawMap(); };
+    if (scheme.addEventListener) scheme.addEventListener("change", updateScheme);
+    else if (scheme.addListener) scheme.addListener(updateScheme);
   }
 
-  buildList();
+  wireMap();
   sizeCanvas();
-  wireLens();
-  wirePresets();
-  wireMapHover();
-  window.addEventListener("resize", function () { sizeCanvas(); drawMap(); });
-
-  setFocus(initialFocus);
-}
-
-// ------------------------------------------------------- what the page claims
-// Everything in this section is derived from the file that was actually loaded.
-// No sentence here states a count, a provenance, or a confidence that is not in
-// front of it. The point is that swapping the file swaps the claims with it: a
-// page that says the numbers are invented must stop saying so the moment they
-// are not, and must start saying so again if sample data ever comes back.
-
-function esc(t) {
-  return String(t).replace(/[&<>"]/g, function (c) {
-    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+  window.addEventListener("resize", function () {
+    sizeCanvas();
+    drawMap();
   });
-}
-function count(n, one, many) { return n + " " + (n === 1 ? one : many); }
-
-var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-function shortDate(iso) {
-  // read straight off the stamp rather than through a date object: the stamp is
-  // UTC, and rendering it in the reader's zone could show the day before
-  var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ""));
-  if (!m) return iso ? String(iso) : "";
-  return Number(m[3]) + " " + MONTHS[Number(m[2]) - 1] + " " + m[1];
+  setFocus(focus);
 }
 
-function tierSuffix(p) {
-  // name whichever kind is the exception here. Writing "seeded" beside every
-  // single name when almost everybody is seeded says nothing, and reads as
-  // though it were a remark about that one person.
-  if (seedsDominant) return p.tier === "seed" ? "" : " (contributed)";
-  return p.tier === "seed" ? " (seeded)" : "";
-}
-function tierMark(p) {
-  if (seedsDominant) return p.tier === "seed" ? "" : " ●";
-  return p.tier === "seed" ? " ○" : "";
-}
-
-function describeData() {
-  var el = document.getElementById("dataline");
-  var flag = D.is_sample_data;
-  if (flag === true) {
-    el.className = "warn";
-    el.innerHTML = "<b>NOT REAL YET.</b> Every person here is invented and " +
-      "every number made up. Nothing has been through the pipeline. " +
-      "<a href=\"#built\">What this will be</a>.";
-  } else if (flag === false) {
-    // provenance, not silence: saying nothing would leave a page of real
-    // accounts with no statement of where they came from
-    var bits = [count(N, "person", "people")];
-    if (D.pipeline_version) bits.push("pipeline v" + esc(D.pipeline_version));
-    if (D.extraction_mode) bits.push(esc(String(D.extraction_mode).replace(/_/g, "-")) + " extraction");
-    if (D.generated_at) bits.push("generated " + esc(shortDate(D.generated_at)));
-    el.className = "warn calm";
-    el.innerHTML = bits.join(" &middot; ");
-  } else {
-    // a file that does not say gets the benefit of no doubt at all
-    el.className = "warn";
-    el.innerHTML = "<b>UNSTATED.</b> This file does not say whether it holds " +
-      "real data or sample data. Treat everything on this page as unconfirmed.";
+function readLayouts() {
+  if (!D.layouts) return null;
+  var result = [];
+  for (var i = 0; i < AXES.length; i++) {
+    var layout = D.layouts[AXES[i]];
+    if (!layout || layout.length !== N) return null;
+    result.push(layout);
   }
-  el.hidden = false;
+  return result;
 }
 
-function describeProvisional() {
-  var el = document.getElementById("provline");
-  if (N >= PROVISIONAL_BELOW) { el.hidden = true; el.innerHTML = ""; return; }
-  var pairs = N * (N - 1) / 2;
-  el.className = "warn";
-  el.innerHTML = "<b>Provisional arrangement.</b> " + count(N, "person", "people") +
-    " make " + count(pairs, "pair", "pairs") + ", and every percentile here is " +
-    "relative to " + (pairs === 1 ? "that pair" : "those " + pairs + " pairs") +
-    " and nothing else &mdash; at this size the numbers swing on very little. " +
-    "Read the distances as a rough ordering, not as a measurement. It takes " +
-    "something like " + SETTLED_AT + " people before this map is worth reading " +
-    "as one.";
-  el.hidden = false;
-}
-
-function describeCohort() {
-  var line = document.getElementById("cohortline");
-  var para = document.getElementById("seedpara");
-
-  if (D.is_sample_data === true) {
-    line.textContent = "Everyone on the map above is invented.";
-  } else if (seeds === 0) {
-    line.innerHTML = "The map above holds " + count(N, "person", "people") +
-      ", all contributed. Contributions remain open.";
-  } else if (contributed === 0) {
-    line.innerHTML = "The map above holds " + count(N, "person", "people") +
-      ", every one of them seeded from a public archive. Contributions are now open.";
-  } else {
-    line.innerHTML = "The map above holds " + count(N, "person", "people") +
-      ": " + seeds + " seeded from a public archive, " + contributed +
-      " contributed. Contributions are now open.";
-  }
-
-  var said;
-  if (seeds === 0) {
-    said = "Every profile on the map above was contributed rather than seeded, " +
-      "so every point on it is drawn solid.";
-  } else if (seedsDominant) {
-    // seeded is the normal case on this map. Describing it as a second, odd
-    // kind of profile would be the wrong way round.
-    said = "<b>This is a seeded map.</b> " + seeds + " of the " + N +
-      " profiles above were not contributed at all. Those people uploaded " +
-      "nothing: their posts were taken from a public archive, and they did not " +
-      "choose to be here. " +
-      (contributed === 1 ? "One profile was contributed directly."
-                         : contributed + " were contributed directly.") +
-      " Seeded profiles are drawn as hollow circles for that reason and for no other.";
-  } else {
-    said = "The map above also carries a second kind of profile, drawn as a " +
-      "hollow circle: " + seeds + " of the " + N + " were seeded rather than " +
-      "contributed. Those people uploaded nothing. Their posts were taken from " +
-      "a public archive, and they did not choose to be here. They are marked " +
-      "differently for that reason and for no other.";
-  }
-  // "Contributed" is a statement about where the file came from, and nothing
-  // more. Nobody's identity is checked at any point, so the mark must not be
-  // left to imply one was.
-  if (contributed > 0) {
-    said += " Contributed means only that the person brought their own archive " +
-      "to the page. Nothing checks whose archive it was.";
-  }
-  para.innerHTML = said;
-}
-
-function describeLegend() {
-  // size and colour say how near; fill says how the profile got here. One glyph
-  // must never stand for both, which is easy to get wrong once nearly every
-  // point on the map is hollow.
-  var bits = ["<span>bigger and coloured &mdash; near you</span>"];
-  if (seeds > 0) {
-    bits.push("<span>&#9675; hollow &mdash; seeded from a public archive (" +
-      seeds + " of " + N + ")</span>");
-  }
-  if (seeds > 0 && seedsDominant && contributed > 0) {
-    // name the exception, since the hollow mark no longer picks anyone out
-    bits.push("<span>&#9679; solid &mdash; contributed (" + contributed + ")</span>");
-  }
-  if (invariantUseful) {
-    bits.push("<span class=\"keep\">&#8857; near you everywhere</span>");
-  }
-  bits.push("<span>&#9632; you</span>");
-  document.getElementById("legend").innerHTML = bits.join("\n");
-}
-
-// ---------------------------------------------------------------- layouts
-// The map has one settled arrangement per end of the lens dial, worked out
-// in advance. Where the dot sits decides how much of each arrangement you see:
-// a point's position is the weighted average of its two positions, using the
-// same weights that order the list. That is smooth, it never jumps, and it is
-// reversible — drag back and everyone returns to exactly where they were.
-//
-// What it deliberately is NOT is a fresh projection per frame. Working the
-// picture out again on every mouse move would let the whole map spin or flip
-// between frames, because those arrangements are only ever settled up to a
-// turn and a mirror. Nobody could follow a point through that.
-
-function readCornerLayouts() {
-  // Older files carry only the single fixed `layout`. Those still work; the
-  // map simply does not move. Anything malformed falls back the same way
-  // rather than throwing.
-  var ls = D.layouts;
-  if (!ls) return null;
-  var out = [];
-  for (var a = 0; a < AXES.length; a++) {
-    var arr = ls[AXES[a]];
-    if (!arr || arr.length !== N) return null;
-    out.push(arr);
-  }
-  return out;
-}
-
-function computeFrame() {
-  // One transform for the whole session, taken from the extremes of every
-  // arrangement the map can show. A blended position is a weighted average of
-  // two fixed points, so it can never leave that box. Re-fitting the box per
-  // frame would zoom the map under the reader's hand, which is the same
-  // disorientation by another route.
-  var sets = corners || [D.layout];
-  var minx = Infinity, maxx = -Infinity, miny = Infinity, maxy = -Infinity;
-  for (var s = 0; s < sets.length; s++) {
-    var L = sets[s];
-    for (var i = 0; i < L.length; i++) {
-      if (L[i][0] < minx) minx = L[i][0];
-      if (L[i][0] > maxx) maxx = L[i][0];
-      if (L[i][1] < miny) miny = L[i][1];
-      if (L[i][1] > maxy) maxy = L[i][1];
-    }
-  }
-  var r = canvas.getBoundingClientRect(), pad = 22;
-  // one scale for both directions, so no arrangement is stretched
-  var k = Math.min((r.width - 2 * pad) / (maxx - minx || 1),
-                   (r.height - 2 * pad) / (maxy - miny || 1));
-  frame = {
-    s: k,
-    ox: (r.width - (maxx - minx) * k) / 2 - minx * k,
-    oy: (r.height - (maxy - miny) * k) / 2 - miny * k
-  };
-}
-
-function positions() {
-  // three multiply-adds per person per frame
-  var f = frame, out = pts;
-  out.length = 0;
-  var i;
-  if (corners) {
-    var A = corners[0], B = corners[1];
-    var w0 = W[0], w1 = W[1];
-    for (i = 0; i < N; i++) {
-      out.push([
-        (w0 * A[i][0] + w1 * B[i][0]) * f.s + f.ox,
-        (w0 * A[i][1] + w1 * B[i][1]) * f.s + f.oy
-      ]);
-    }
-  } else {
-    var L = D.layout;
-    for (i = 0; i < N; i++) out.push([L[i][0] * f.s + f.ox, L[i][1] * f.s + f.oy]);
-  }
-  return out;
-}
-
-function describeMotion() {
-  var el = document.getElementById("motionnote");
-  if (!el) return;
-  el.innerHTML = corners
-    ? "The map slides with the dial. Each lens has its own settled arrangement, " +
-      "worked out once and never recomputed; in between, everyone sits at the " +
-      "weighted average of their two places. So points glide, and glide back " +
-      "when the dial moves back &mdash; they never jump or swap sides."
-    : "This file carries a single fixed arrangement, so the map does not move. " +
-      "Dragging the dot changes which points light up, not where they sit.";
-}
-
-// ---------------------------------------------------------------- arithmetic
-// Everything below is plain client-side arithmetic over the similarities that
-// came in the file. Nothing here calls the network, and nothing here rescales:
-// the file arrives already standardised across the population, so combining is
-// only ever a weighted sum.
-
-function computeAxisScores(f) {
-  var out = {};
-  AXES.forEach(function (a) {
-    var views = axisViews[a];
-    var arr = new Float64Array(N);
+function computeAxisScores(person) {
+  var result = {};
+  AXES.forEach(function (axis) {
+    var views = axisViews[axis];
+    var values = new Float64Array(N);
     for (var v = 0; v < views.length; v++) {
-      var row = D.similarity[views[v]][f];
-      for (var i = 0; i < N; i++) arr[i] += row[i];
+      var row = D.similarity[views[v]][person];
+      for (var i = 0; i < N; i++) values[i] += row[i];
     }
-    if (views.length) for (var j = 0; j < N; j++) arr[j] /= views.length;
-    out[a] = arr;
+    if (views.length) {
+      for (var j = 0; j < N; j++) values[j] /= views.length;
+    }
+    result[axis] = values;
   });
-  return out;
+  return result;
 }
 
-function combine(w, into) {
-  var a = axisScore.TOPIC, b = axisScore.WORLDVIEW;
-  var out = into || new Float64Array(N);
-  for (var i = 0; i < N; i++) out[i] = w[0] * a[i] + w[1] * b[i];
-  return out;
-}
-
-var idxBuf = null, scratch = null;
-function topSet(w, sink) {
-  // indices of the LIST_N highest scorers, focus excluded
-  if (!idxBuf) { idxBuf = new Int32Array(N); scratch = new Float64Array(N); }
-  combine(w, scratch);
-  var n = 0, i;
-  for (i = 0; i < N; i++) if (i !== focus) idxBuf[n++] = i;
-  // sorted in place in the reused buffer: this runs a few hundred times per
-  // change of focus, so it should not be allocating on every pass
-  var view = idxBuf.subarray(0, n);
-  view.sort(function (x, y) { return scratch[y] - scratch[x]; });
-  var k = Math.min(LIST_N, n);
-  for (i = 0; i < k; i++) sink[view[i]]++;
-  return k;
-}
-
-function computeInvariant() {
-  // A sweep of the whole dial. The combined score is a weighted sum, so it
-  // moves smoothly as the dot moves; a grid this fine does not miss anyone who
-  // drops out somewhere in between. Only runs when the focus person changes.
-  invariant = new Uint8Array(N);
-  invariantCount = 0;
-  // When the list is everyone, or all but a handful, every single person passes
-  // this test by construction. Marking the whole map would be announcing
-  // nothing while looking like a finding, so the sweep is not run at all and
-  // the readout says why instead.
-  if (!invariantUseful) return;
-  var counts = new Int32Array(N);
-  var points = 0;
-  for (var i = 0; i <= GRID; i++) {
-    topSet([i / GRID, 1 - i / GRID], counts);
-    points++;
-  }
-  for (var p = 0; p < N; p++) {
-    if (counts[p] === points) { invariant[p] = 1; invariantCount++; }
-  }
-}
-
-function reRank() {
-  score = combine(W, score);
-  computePairScores();
-  order.length = 0;
-  for (var i = 0; i < N; i++) if (i !== focus) order.push(i);
-  order.sort(function (a, b) { return score[b] - score[a]; });
-  rankOf = new Int32Array(N);
-  for (var r = 0; r < Math.min(LIST_N, order.length); r++) rankOf[order[r]] = r + 1;
-}
-
-function computePairScores() {
-  pairScores.length = 0;
+function combine() {
+  var topic = axisScores.TOPIC;
+  var worldview = axisScores.WORLDVIEW;
+  if (!scores || scores.length !== N) scores = new Float64Array(N);
   for (var i = 0; i < N; i++) {
-    for (var j = i + 1; j < N; j++) {
-      var parts = [0, 0];
-      for (var a = 0; a < AXES.length; a++) {
-        var views = axisViews[AXES[a]];
-        for (var v = 0; v < views.length; v++) {
-          parts[a] += D.similarity[views[v]][i][j];
-        }
-        if (views.length) parts[a] /= views.length;
-      }
-      pairScores.push(W[0] * parts[0] + W[1] * parts[1]);
-    }
+    scores[i] = weights[0] * topic[i] + weights[1] * worldview[i];
   }
-  pairScores.sort(function (a, b) { return a - b; });
 }
 
-function closenessPercentile(value) {
-  // Midrank handles ties fairly. Using every pair, not only the selected
-  // person's pairs, makes the number comparable throughout the current map.
-  var below = 0, equal = 0;
-  for (var i = 0; i < pairScores.length; i++) {
-    if (pairScores[i] < value - 1e-10) below++;
-    else if (Math.abs(pairScores[i] - value) <= 1e-10) equal++;
-    else break;
-  }
-  return pairScores.length
-    ? Math.round(100 * (below + 0.5 * equal) / pairScores.length)
-    : 0;
-}
-
-function setFocus(f) {
-  focus = f;
-  axisScore = computeAxisScores(f);
-  score = new Float64Array(N);
-  computeInvariant();
+function setFocus(person) {
+  focus = person;
+  select.value = String(person);
+  axisScores = computeAxisScores(person);
+  hot = -1;
+  tip.style.display = "none";
   update();
 }
 
-// ---------------------------------------------------------------- readouts
-function buildList() {
-  var tb = document.getElementById("nblist");
-  for (var i = 0; i < LIST_N; i++) {
-    var tr = document.createElement("tr");
-    var tdR = document.createElement("td"); tdR.className = "r";
-    var tdK = document.createElement("td"); tdK.className = "k";
-    var tdH = document.createElement("td");
-    var tdS = document.createElement("td"); tdS.className = "s";
-    tr.appendChild(tdR); tr.appendChild(tdK); tr.appendChild(tdH); tr.appendChild(tdS);
-    tb.appendChild(tr);
-    rows.push({ tr: tr, r: tdR, k: tdK, h: tdH, s: tdS, who: -1 });
-    (function (row) {
-      tr.addEventListener("mouseenter", function () { hot = row.who; paintHot(); drawMap(); });
-      tr.addEventListener("mouseleave", function () { hot = -1; paintHot(); drawMap(); });
-    })(rows[i]);
-  }
-}
-
-function paintHot() {
-  for (var i = 0; i < rows.length; i++) {
-    rows[i].tr.className = (rows[i].who >= 0 && rows[i].who === hot) ? "hot" : "";
-  }
-}
-
 function update() {
-  reRank();
-  for (var i = 0; i < rows.length; i++) {
-    var row = rows[i];
-    if (i < order.length) {
-      var p = order[i];
-      row.who = p;
-      row.r.textContent = String(i + 1);
-      row.k.textContent = invariant[p] ? "⊙" : "";
-      row.k.title = invariant[p]
-        ? "in your nearest " + LIST_N + " at every lens setting" : "";
-      row.h.textContent = "@" + D.people[p].handle + tierMark(D.people[p]);
-      row.s.textContent = closenessPercentile(score[p]) + "%";
-      row.tr.style.display = "";
-    } else {
-      row.who = -1;
-      row.tr.style.display = "none";
-    }
-  }
-  paintHot();
+  if (!D) return;
+  combine();
+  order.length = 0;
+  for (var i = 0; i < N; i++) if (i !== focus) order.push(i);
+  order.sort(function (a, b) { return scores[b] - scores[a]; });
 
-  var pct = W.map(function (x) { return Math.round(x * 100); });
-  document.getElementById("weights").innerHTML =
-    "Attention <b>" + pct[0] + "%</b> &middot; Ideology <b>" + pct[1] + "%</b>";
-  lens.value = String(pct[1]);
-  lens.setAttribute("aria-valuetext",
-    "attention " + pct[0] + " percent, ideology " + pct[1] + " percent");
-
-  var inv = document.getElementById("invline");
-  var me = esc(D.people[focus].handle);
-  if (!invariantUseful) {
-    // say it plainly rather than ring every point on the map
-    inv.innerHTML = N - 1 <= LIST_N
-      ? "There are only " + count(N - 1, "other person", "other people") +
-        " here, so the list holds all of them and nobody can drop out of it. " +
-        "Nothing is marked as staying near @" + me + " everywhere, because at " +
-        "this size that would be true of everyone."
-      : "The list holds " + LIST_N + " of the " + (N - 1) + " other people here, " +
-        "so almost nobody can be outside it. Nothing is marked as staying near @" +
-        me + " everywhere until there are more people to fall out.";
-  } else if (invariantCount === 0) {
-    inv.innerHTML = "<b>Nobody</b> stays in the nearest " + LIST_N +
-      " across the whole dial for @" + me + ".";
-  } else {
-    inv.innerHTML = "<b>" + count(invariantCount, "person", "people") +
-      "</b> stay in the nearest " + LIST_N + " for @" + me +
-      " at <i>every</i> setting of the dial &mdash; ringed <span class=\"keep\">⊙</span> " +
-      "on the map, marked in the list.";
-  }
-
+  rankOf = new Int32Array(N);
+  for (var r = 0; r < order.length; r++) rankOf[order[r]] = r + 1;
+  renderList();
   drawMap();
 }
 
-// ---------------------------------------------------------------- lens dial
-function wireLens() {
-  lens.addEventListener("input", function () {
-    var ideology = Number(lens.value) / 100;
-    W = [1 - ideology, ideology];
-    update();
-  });
-}
+function renderList() {
+  list.innerHTML = "";
+  var count = Math.min(MAX_NEIGHBORS, order.length);
+  for (var i = 0; i < count; i++) {
+    var person = order[i];
+    var item = document.createElement("li");
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "neighbor" + (person === hot ? " hot" : "");
+    button.dataset.person = String(person);
 
-function wirePresets() {
-  var btns = document.querySelectorAll(".presets button");
-  for (var i = 0; i < btns.length; i++) {
-    btns[i].addEventListener("click", function () {
-      W = this.getAttribute("data-w").split(",").map(Number);
-      update();
+    var rank = document.createElement("span");
+    rank.className = "rank";
+    rank.textContent = String(i + 1);
+    var handle = document.createElement("span");
+    handle.textContent = "@" + D.people[person].handle;
+    button.appendChild(rank);
+    button.appendChild(handle);
+
+    button.addEventListener("mouseenter", function () {
+      hot = Number(this.dataset.person);
+      paintList();
+      drawMap();
     });
+    button.addEventListener("mouseleave", function () {
+      hot = -1;
+      paintList();
+      drawMap();
+    });
+    button.addEventListener("click", function () {
+      setFocus(Number(this.dataset.person));
+    });
+
+    item.appendChild(button);
+    list.appendChild(item);
   }
 }
 
-// ---------------------------------------------------------------- map
+function paintList() {
+  var buttons = list.querySelectorAll(".neighbor");
+  for (var i = 0; i < buttons.length; i++) {
+    buttons[i].classList.toggle("hot", Number(buttons[i].dataset.person) === hot);
+  }
+}
+
+function computeFrame() {
+  var sets = layouts || [D.layout];
+  var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (var s = 0; s < sets.length; s++) {
+    for (var i = 0; i < sets[s].length; i++) {
+      minX = Math.min(minX, sets[s][i][0]);
+      maxX = Math.max(maxX, sets[s][i][0]);
+      minY = Math.min(minY, sets[s][i][1]);
+      maxY = Math.max(maxY, sets[s][i][1]);
+    }
+  }
+  var rect = canvas.getBoundingClientRect();
+  var pad = 30;
+  var scale = Math.min(
+    (rect.width - 2 * pad) / (maxX - minX || 1),
+    (rect.height - 2 * pad) / (maxY - minY || 1)
+  );
+  frame = {
+    scale: scale,
+    x: (rect.width - (maxX - minX) * scale) / 2 - minX * scale,
+    y: (rect.height - (maxY - minY) * scale) / 2 - minY * scale
+  };
+}
+
+function currentPositions() {
+  points.length = 0;
+  var source = layouts || [D.layout, D.layout];
+  for (var i = 0; i < N; i++) {
+    var x = weights[0] * source[0][i][0] + weights[1] * source[1][i][0];
+    var y = weights[0] * source[0][i][1] + weights[1] * source[1][i][1];
+    points.push([x * frame.scale + frame.x, y * frame.scale + frame.y]);
+  }
+}
+
 function sizeCanvas() {
-  var dpr = window.devicePixelRatio || 1;
-  var r = canvas.getBoundingClientRect();
-  canvas.width = Math.max(1, Math.round(r.width * dpr));
-  canvas.height = Math.max(1, Math.round(r.height * dpr));
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (!D) return;
+  var ratio = window.devicePixelRatio || 1;
+  var rect = canvas.getBoundingClientRect();
+  canvas.width = Math.max(1, Math.round(rect.width * ratio));
+  canvas.height = Math.max(1, Math.round(rect.height * ratio));
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
   computeFrame();
 }
 
 function drawMap() {
   if (!D || !frame) return;
-  var r = canvas.getBoundingClientRect();
-  var w = r.width, h = r.height;
-  ctx.clearRect(0, 0, w, h);
+  var rect = canvas.getBoundingClientRect();
+  ctx.clearRect(0, 0, rect.width, rect.height);
+  currentPositions();
 
-  positions();
-  var i;
+  var drawingOrder = [];
+  for (var i = 0; i < N; i++) if (i !== focus) drawingOrder.push(i);
+  drawingOrder.sort(function (a, b) { return rankOf[b] - rankOf[a]; });
 
-  // painter's order: background crowd, then neighbours, then the marked, then you
-  var draw = [];
-  for (i = 0; i < N; i++) {
-    if (i === focus) continue;
-    draw.push(i);
-  }
-  draw.sort(function (a, b) {
-    var ra = rankOf[a] || 999, rb = rankOf[b] || 999;
-    return rb - ra;
-  });
-
-  for (var d = 0; d < draw.length; d++) {
-    i = draw[d];
-    var p = pts[i], rank = rankOf[i], seed = D.people[i].tier === "seed";
-    var isHot = i === hot;
-    var rad, col;
-    if (rank) {
-      // nearest people are bigger; the top of the list is unmistakable
-      rad = 7.5 - 4.0 * ((rank - 1) / LIST_N);
-      col = C.mark;
-    } else {
-      rad = 2.6; col = C.faint;
-    }
-    if (isHot) rad += 2.5;
+  for (var d = 0; d < drawingOrder.length; d++) {
+    var person = drawingOrder[d];
+    var rank = rankOf[person];
+    var highlighted = rank <= Math.min(HIGHLIGHT_NEIGHBORS, N - 1);
+    var radius = highlighted
+      ? 8 - 3.5 * ((rank - 1) / Math.max(1, HIGHLIGHT_NEIGHBORS - 1))
+      : 2.7;
+    if (person === hot) radius += 2.5;
 
     ctx.beginPath();
-    ctx.arc(p[0], p[1], rad, 0, 6.2832);
-    if (seed) {
-      // seeded: hollow, so it can never be mistaken for a contributed profile
-      ctx.strokeStyle = col; ctx.lineWidth = 1.6; ctx.stroke();
-    } else {
-      ctx.fillStyle = col; ctx.fill();
+    ctx.arc(points[person][0], points[person][1], radius, 0, Math.PI * 2);
+    ctx.fillStyle = highlighted ? css.mark : css.faint;
+    ctx.fill();
+
+    if (person === hot) {
+      drawLabel("@" + D.people[person].handle, points[person][0], points[person][1] - radius - 6, false, rect.width);
     }
-    if (invariant && invariant[i]) {
-      // the marquee mark: this person does not drop out of the list no
-      // matter where the dot goes, so it gets its own colour, not a shade
-      ctx.beginPath();
-      ctx.arc(p[0], p[1], rad + 4.5, 0, 6.2832);
-      ctx.strokeStyle = C.keep; ctx.lineWidth = 2.2; ctx.stroke();
-    }
-    if (isHot) label("@" + D.people[i].handle, p[0], p[1] - rad - 6, false, w);
   }
 
-  // you
-  var f = pts[focus];
-  ctx.fillStyle = C.mark2;
-  ctx.fillRect(f[0] - 5, f[1] - 5, 10, 10);
-  ctx.strokeStyle = C.fg; ctx.lineWidth = 1.2;
-  ctx.strokeRect(f[0] - 5, f[1] - 5, 10, 10);
-  label("@" + D.people[focus].handle, f[0], f[1] - 11, true, w);
+  var here = points[focus];
+  ctx.fillStyle = css.focus;
+  ctx.fillRect(here[0] - 5, here[1] - 5, 10, 10);
+  ctx.strokeStyle = css.fg;
+  ctx.lineWidth = 1.2;
+  ctx.strokeRect(here[0] - 5, here[1] - 5, 10, 10);
+  drawLabel("@" + D.people[focus].handle, here[0], here[1] - 12, true, rect.width);
 }
 
-function label(text, x, y, bold, w) {
-  // knocked out of the background first, so a name over a crowd stays readable,
-  // and nudged inward so it cannot run off the edge of the box
+function drawLabel(text, x, y, bold, width) {
   ctx.font = (bold ? "bold " : "") + "12px Georgia, serif";
   ctx.textAlign = "center";
-  var half = ctx.measureText(text).width / 2 + 2;
-  x = Math.max(half, Math.min(w - half, x));
-  y = Math.max(12, y);
+  var half = ctx.measureText(text).width / 2 + 3;
+  x = Math.max(half, Math.min(width - half, x));
+  y = Math.max(13, y);
   ctx.lineJoin = "round";
-  ctx.strokeStyle = C.panel; ctx.lineWidth = 3.5;
+  ctx.strokeStyle = css.panel;
+  ctx.lineWidth = 4;
   ctx.strokeText(text, x, y);
-  ctx.fillStyle = C.fg;
+  ctx.fillStyle = css.fg;
   ctx.fillText(text, x, y);
 }
 
-function nearest(x, y) {
-  var best = -1, bd = 18 * 18;
-  for (var i = 0; i < pts.length; i++) {
-    var dx = pts[i][0] - x, dy = pts[i][1] - y, d = dx * dx + dy * dy;
-    if (d < bd) { bd = d; best = i; }
+function nearestPoint(x, y) {
+  var nearest = -1;
+  var distance = 20 * 20;
+  for (var i = 0; i < points.length; i++) {
+    var dx = points[i][0] - x;
+    var dy = points[i][1] - y;
+    var candidate = dx * dx + dy * dy;
+    if (candidate < distance) {
+      distance = candidate;
+      nearest = i;
+    }
   }
-  return best;
+  return nearest;
 }
 
-function wireMapHover() {
-  function at(ev) {
-    var r = canvas.getBoundingClientRect();
-    var x = ev.clientX - r.left, y = ev.clientY - r.top;
-    var i = nearest(x, y);
-    if (i !== hot) { hot = i; paintHot(); drawMap(); }
-    if (i < 0) { tip.style.display = "none"; return; }
-    var p = D.people[i];
-    var bits = ["<b>@" + esc(p.handle) + "</b>"];
-    if (i === focus) bits.push("this is who you are looking from");
-    else {
-      bits.push(rankOf[i] ? "nearest " + rankOf[i] + " of " + LIST_N
-                          : "outside the nearest " + LIST_N);
-      bits.push("closer than roughly " + closenessPercentile(score[i]) + "% of pairs");
-      if (invariant[i]) bits.push("⊙ near you at every setting");
+function pointAt(event) {
+  var rect = canvas.getBoundingClientRect();
+  return nearestPoint(event.clientX - rect.left, event.clientY - rect.top);
+}
+
+function wireMap() {
+  canvas.addEventListener("pointermove", function (event) {
+    hot = pointAt(event);
+    paintList();
+    drawMap();
+    if (hot < 0) {
+      tip.style.display = "none";
+      return;
     }
-    bits.push(p.tier === "seed" ? "seeded from a public archive" : "contributed");
-    tip.innerHTML = bits.join("<br>");
+
+    var rect = canvas.getBoundingClientRect();
+    var x = event.clientX - rect.left;
+    var y = event.clientY - rect.top;
+    tip.textContent = "@" + D.people[hot].handle;
     tip.style.display = "block";
-    var tw = tip.offsetWidth, th = tip.offsetHeight;
-    tip.style.left = Math.max(0, Math.min(r.width - tw, x + 12)) + "px";
-    tip.style.top = Math.max(0, y - th - 10) + "px";
-  }
-  canvas.addEventListener("pointermove", at);
-  canvas.addEventListener("pointerdown", at);
+    var tipWidth = tip.offsetWidth;
+    var tipHeight = tip.offsetHeight;
+    tip.style.left = Math.max(0, Math.min(rect.width - tipWidth, x + 12)) + "px";
+    tip.style.top = Math.max(0, y - tipHeight - 10) + "px";
+  });
+
   canvas.addEventListener("pointerleave", function () {
-    hot = -1; tip.style.display = "none"; paintHot(); drawMap();
+    hot = -1;
+    tip.style.display = "none";
+    paintList();
+    drawMap();
+  });
+
+  canvas.addEventListener("pointerdown", function (event) {
+    var person = pointAt(event);
+    if (person >= 0) setFocus(person);
   });
 }
 
 })();
 </script>
-
 </body>
 </html>
