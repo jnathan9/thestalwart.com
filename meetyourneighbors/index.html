@@ -44,7 +44,7 @@ button, select, input { font: inherit; }
 
 .top {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 22px;
   margin-bottom: 22px;
@@ -55,6 +55,14 @@ h1 {
   font-size: clamp(2rem, 4.2vw, 3.4rem);
   line-height: 1;
   letter-spacing: -.025em;
+}
+
+.intro { max-width: 790px; }
+.intro p {
+  max-width: 740px;
+  margin: 12px 0 0;
+  font-size: clamp(1rem, 1.8vw, 1.16rem);
+  line-height: 1.45;
 }
 
 .upload {
@@ -238,7 +246,10 @@ footer {
 <body>
 
 <header class="top">
-  <h1>Find your neighbors, not your neighborhood.</h1>
+  <div class="intro">
+    <h1>Meet Your Neighbors</h1>
+    <p>Meet Your Neighbors is a new kind of political compass. The goal is not to find your political label, but merely who shares your worldview and interests. Upload your tweets, and see where you land on the map.</p>
+  </div>
   <a class="upload" href="contribute.html">Upload your archive</a>
 </header>
 
