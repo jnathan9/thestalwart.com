@@ -276,8 +276,10 @@ footer {
 <main>
   <div class="controls">
     <label>
-      <span class="field-label">You</span>
-      <select id="who" aria-label="Choose a person"></select>
+      <span class="field-label">User</span>
+      <input id="who" type="search" list="who-options" autocomplete="off"
+             aria-label="Search for a person" placeholder="Type a handle">
+      <datalist id="who-options"></datalist>
     </label>
     <label class="lens">
       <span class="field-label">Nearness</span>
@@ -330,7 +332,9 @@ var hot = -1;
 
 var canvas = document.getElementById("map");
 var ctx = canvas.getContext("2d");
-var select = document.getElementById("who");
+var picker = document.getElementById("who");
+var pickerOptions = document.getElementById("who-options");
+var pickerEntries = [];
 var lens = document.getElementById("lens");
 var list = document.getElementById("neighbor-list");
 var tip = document.getElementById("tip");
@@ -374,23 +378,37 @@ function start(data) {
   });
 
   layouts = readLayouts();
-  D.people.forEach(function (person, index) {
-    var option = document.createElement("option");
-    option.value = String(index);
-    option.textContent = "@" + person.handle;
-    select.appendChild(option);
+  pickerEntries = D.people.map(function (person, index) {
+    return {
+      index: index,
+      label: "@" + person.handle,
+      normalized: String(person.handle).toLowerCase()
+    };
+  }).sort(function (a, b) {
+    return a.normalized.localeCompare(b.normalized);
   });
 
-  for (var i = 0; i < N; i++) {
-    if (String(D.people[i].handle).toLowerCase() === "thestalwart") {
-      focus = i;
-      break;
-    }
-  }
+  renderPickerOptions("");
 
-  select.value = String(focus);
-  select.addEventListener("change", function () {
-    setFocus(Number(select.value));
+  focus = pickerEntries.length ? pickerEntries[0].index : 0;
+
+  picker.addEventListener("input", function () {
+    renderPickerOptions(picker.value);
+    chooseTypedHandle(false);
+  });
+  picker.addEventListener("change", function () {
+    if (!chooseTypedHandle(true)) picker.value = handleLabel(focus);
+    renderPickerOptions("");
+  });
+  picker.addEventListener("keydown", function (event) {
+    if (event.key === "Enter" && chooseTypedHandle(true)) {
+      renderPickerOptions("");
+      picker.blur();
+    }
+  });
+  picker.addEventListener("focus", function () {
+    renderPickerOptions("");
+    picker.select();
   });
   lens.addEventListener("input", function () {
     var beliefWeight = Number(lens.value) / 100;
@@ -616,9 +634,49 @@ function percentile(score) {
   return Math.round(100 * (below + (equal - below) / 2) / pairScores.length);
 }
 
+function handleLabel(person) {
+  return D && D.people[person] ? "@" + D.people[person].handle : "";
+}
+
+function normalizedHandle(value) {
+  return String(value).trim().replace(/^@/, "").toLowerCase();
+}
+
+function renderPickerOptions(query) {
+  var normalized = normalizedHandle(query);
+  pickerOptions.replaceChildren();
+  pickerEntries.forEach(function (entry) {
+    if (normalized && !entry.normalized.includes(normalized)) return;
+    var option = document.createElement("option");
+    option.value = entry.label;
+    pickerOptions.appendChild(option);
+  });
+}
+
+function chooseTypedHandle(allowPrefix) {
+  var query = normalizedHandle(picker.value);
+  if (!query) return false;
+  var match = pickerEntries.find(function (entry) {
+    return entry.normalized === query;
+  });
+  if (!match && allowPrefix) {
+    match = pickerEntries.find(function (entry) {
+      return entry.normalized.startsWith(query);
+    });
+  }
+  if (!match && allowPrefix) {
+    match = pickerEntries.find(function (entry) {
+      return entry.normalized.includes(query);
+    });
+  }
+  if (!match) return false;
+  setFocus(match.index);
+  return true;
+}
+
 function setFocus(person) {
   focus = person;
-  select.value = String(person);
+  picker.value = handleLabel(person);
   axisScores = computeAxisScores(person);
   hot = -1;
   tip.style.display = "none";
