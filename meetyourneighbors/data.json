@@ -2,7 +2,7 @@
   "pipeline_version": "cards-0.7.0",
   "extraction_mode": "private_crisp_cards",
   "embedding_model": "openai/text-embedding-3-small",
-  "generated_at": "2026-08-11T10:56:11.559Z",
+  "generated_at": "2026-08-11T11:09:07.637Z",
   "is_sample_data": false,
   "layout_method": "browser_classical_mds",
   "views": [
@@ -245,7 +245,7 @@
       "handle": "thestalwart",
       "tier": "contributed",
       "n_runs": 1,
-      "dot_scale": 1
+      "dot_scale": 1.8831
     },
     {
       "id": "contribution:4cfdd7f501654c1897adb2655fa5f5a3",
