@@ -27,7 +27,6 @@
   --rule: #9ab89a;
   --panel: #eaf4ea;
   --mark: #b03000;
-  --focus: #7a4b00;
   --faint: #8fa88f;
 }
 
@@ -39,7 +38,6 @@
     --rule: #33452f;
     --panel: #18211a;
     --mark: #ff9166;
-    --focus: #ffd479;
     --faint: #4e6049;
   }
 }
@@ -306,7 +304,6 @@ footer {
 
 var AXES = ["TOPIC", "WORLDVIEW"];
 var MAX_NEIGHBORS = 12;
-var HIGHLIGHT_NEIGHBORS = 6;
 
 var D = null;
 var N = 0;
@@ -341,7 +338,6 @@ function readColors() {
   css.fg = cssVar("--fg");
   css.panel = cssVar("--panel");
   css.mark = cssVar("--mark");
-  css.focus = cssVar("--focus");
   css.faint = cssVar("--faint");
 }
 
@@ -576,8 +572,8 @@ function sourceLabel(person) {
   return person.tier === "contributed" ? "Uploaded by participant" : "From a public archive";
 }
 
-function poleRadius(person) {
-  return 7.5 + 2.5 * Number(D.people[person].pole_weight || 0.8);
+function dotRadius(person) {
+  return 3.5 * Number(D.people[person].dot_scale || 1);
 }
 
 function computeAxisScores(person) {
@@ -764,54 +760,34 @@ function drawMap() {
   var drawingOrder = [];
   for (var i = 0; i < N; i++) if (i !== focus) drawingOrder.push(i);
   drawingOrder.sort(function (a, b) {
-    var poleDifference = Number(Boolean(D.people[a].pole)) - Number(Boolean(D.people[b].pole));
-    return poleDifference || rankOf[b] - rankOf[a];
+    return Number(D.people[a].dot_scale || 1) - Number(D.people[b].dot_scale || 1);
   });
 
   for (var d = 0; d < drawingOrder.length; d++) {
     var person = drawingOrder[d];
-    var rank = rankOf[person];
-    var highlighted = rank <= Math.min(HIGHLIGHT_NEIGHBORS, N - 1);
-    var radius = highlighted
-      ? 8 - 3.5 * ((rank - 1) / Math.max(1, HIGHLIGHT_NEIGHBORS - 1))
-      : 2.7;
-    if (D.people[person].pole) radius = Math.max(radius, poleRadius(person));
+    var radius = dotRadius(person);
     if (person === hot) radius += 2.5;
 
     ctx.beginPath();
     ctx.arc(points[person][0], points[person][1], radius, 0, Math.PI * 2);
-    ctx.globalAlpha = highlighted ? 1 : .48;
     ctx.fillStyle = css.mark;
     ctx.fill();
-    ctx.globalAlpha = 1;
-
-    if (D.people[person].pole) {
-      ctx.beginPath();
-      ctx.arc(points[person][0], points[person][1], radius + 2, 0, Math.PI * 2);
-      ctx.globalAlpha = .55;
-      ctx.strokeStyle = css.fg;
-      ctx.lineWidth = 1.2;
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
 
     if (person === hot) {
       drawLabel("@" + D.people[person].handle, points[person][0], points[person][1] - radius - 6, false, rect.width);
     }
   }
 
-  for (var labelIndex = 0; labelIndex < N; labelIndex++) {
-    if (!D.people[labelIndex].pole || labelIndex === focus || labelIndex === hot) continue;
-    drawLabel("@" + D.people[labelIndex].handle, points[labelIndex][0], points[labelIndex][1] - poleRadius(labelIndex) - 6, false, rect.width);
-  }
-
   var here = points[focus];
-  ctx.fillStyle = css.focus;
-  ctx.fillRect(here[0] - 5, here[1] - 5, 10, 10);
+  var focusRadius = dotRadius(focus);
+  ctx.beginPath();
+  ctx.arc(here[0], here[1], focusRadius, 0, Math.PI * 2);
+  ctx.fillStyle = css.mark;
+  ctx.fill();
   ctx.strokeStyle = css.fg;
   ctx.lineWidth = 1.2;
-  ctx.strokeRect(here[0] - 5, here[1] - 5, 10, 10);
-  drawLabel("@" + D.people[focus].handle, here[0], here[1] - 12, true, rect.width);
+  ctx.stroke();
+  drawLabel("@" + D.people[focus].handle, here[0], here[1] - focusRadius - 7, true, rect.width);
 }
 
 function drawLabel(text, x, y, bold, width) {
