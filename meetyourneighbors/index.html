@@ -135,7 +135,7 @@ h1 {
 .lens-ends {
   display: flex;
   justify-content: space-between;
-  margin-top: 4px;
+  margin-bottom: 5px;
   color: var(--dim);
   font-family: system-ui, sans-serif;
   font-size: 11px;
@@ -206,14 +206,6 @@ h1 {
   text-transform: uppercase;
 }
 
-.score-note {
-  margin: 0 0 12px;
-  color: var(--dim);
-  font-family: system-ui, sans-serif;
-  font-size: 11px;
-  line-height: 1.4;
-}
-
 #neighbor-list {
   margin: 0;
   padding: 0;
@@ -224,9 +216,7 @@ h1 {
 #neighbor-list li:last-child { border-bottom: 1px solid var(--rule); }
 
 .neighbor {
-  display: grid;
-  grid-template-columns: 2.1em minmax(0, 1fr) 3em;
-  gap: 4px;
+  display: block;
   width: 100%;
   padding: 7px 2px;
   border: 0;
@@ -237,15 +227,6 @@ h1 {
 }
 
 .neighbor:hover, .neighbor.hot { background: var(--panel); }
-.rank { color: var(--dim); text-align: right; padding-right: 5px; }
-.score {
-  color: var(--dim);
-  font-family: system-ui, sans-serif;
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
 #error {
   margin: 12px 0 0;
   color: var(--mark);
@@ -296,10 +277,9 @@ footer {
       <datalist id="who-options"></datalist>
     </label>
     <label class="lens">
-      <span class="field-label">Nearness</span>
+      <span class="lens-ends"><span>Interests</span><span>Worldview</span></span>
       <input id="lens" type="range" min="0" max="100" value="50" step="1"
-             aria-label="Weighting between topics and beliefs">
-      <span class="lens-ends"><span>Topics</span><span>Beliefs</span></span>
+             aria-label="Weighting between interests and worldview">
     </label>
   </div>
 
@@ -311,8 +291,7 @@ footer {
     </div>
 
     <aside class="neighbors">
-      <h2>Neighbors</h2>
-      <p class="score-note">99% means you two are closer than 99% of all connections.</p>
+      <h2>Your Nearest Neighbors</h2>
       <ol id="neighbor-list"></ol>
       <p id="error"></p>
     </aside>
@@ -336,7 +315,6 @@ var weights = [0.5, 0.5];
 var axisViews = {};
 var axisScores = null;
 var scores = null;
-var pairScores = [];
 var order = [];
 var rankOf = null;
 var layouts = null;
@@ -429,7 +407,7 @@ function start(data) {
     weights = [1 - beliefWeight, beliefWeight];
     lens.setAttribute(
       "aria-valuetext",
-      Math.round(weights[0] * 100) + "% topics, " + Math.round(weights[1] * 100) + "% beliefs"
+      Math.round(weights[0] * 100) + "% interests, " + Math.round(weights[1] * 100) + "% worldview"
     );
     update();
   });
@@ -627,29 +605,6 @@ function combine() {
     scores[i] = weights[0] * topic[i] + weights[1] * worldview[i];
   }
 
-  pairScores.length = 0;
-  for (var a = 0; a < N; a++) {
-    for (var b = a + 1; b < N; b++) {
-      var topicPair = 0;
-      var worldviewPair = 0;
-      var topicViews = axisViews.TOPIC;
-      var worldviewViews = axisViews.WORLDVIEW;
-      for (var t = 0; t < topicViews.length; t++) topicPair += D.similarity[topicViews[t]][a][b];
-      for (var w = 0; w < worldviewViews.length; w++) worldviewPair += D.similarity[worldviewViews[w]][a][b];
-      if (topicViews.length) topicPair /= topicViews.length;
-      if (worldviewViews.length) worldviewPair /= worldviewViews.length;
-      pairScores.push(weights[0] * topicPair + weights[1] * worldviewPair);
-    }
-  }
-  pairScores.sort(function (a, b) { return a - b; });
-}
-
-function percentile(score) {
-  var below = 0;
-  while (below < pairScores.length && pairScores[below] < score) below++;
-  var equal = below;
-  while (equal < pairScores.length && pairScores[equal] === score) equal++;
-  return Math.round(100 * (below + (equal - below) / 2) / pairScores.length);
 }
 
 function handleLabel(person) {
@@ -726,17 +681,9 @@ function renderList() {
     button.dataset.person = String(person);
     button.title = "@" + D.people[person].handle + " · " + sourceLabel(D.people[person]);
 
-    var rank = document.createElement("span");
-    rank.className = "rank";
-    rank.textContent = String(i + 1);
     var handle = document.createElement("span");
     handle.textContent = "@" + D.people[person].handle;
-    var score = document.createElement("span");
-    score.className = "score";
-    score.textContent = percentile(scores[person]) + "%";
-    button.appendChild(rank);
     button.appendChild(handle);
-    button.appendChild(score);
 
     button.addEventListener("mouseenter", function () {
       hot = Number(this.dataset.person);
