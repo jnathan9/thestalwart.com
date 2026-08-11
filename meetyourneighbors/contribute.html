@@ -14,11 +14,11 @@
   <p>Your complete archive stays on your computer. Only a sample of about 10,000 words is submitted.</p>
 
   <h2>1. Choose your archive</h2>
-  <p>Use the ZIP that X gives you, or select the <code>tweets.js</code> files inside an extracted archive.</p>
+  <p>Use the ZIP that X gives you, select the <code>tweets.js</code> files inside an extracted archive, or choose a CSV containing tweet text and dates.</p>
   <label class="drop" id="drop">
     <strong>Drop your X archive here</strong>
-    <span>or click to choose a ZIP / tweets.js files</span>
-    <input id="files" type="file" accept=".zip,.js,application/zip,text/javascript" multiple>
+    <span>or click to choose a ZIP / tweets.js / CSV files</span>
+    <input id="files" type="file" accept=".zip,.js,.csv,application/zip,text/javascript,text/csv" multiple>
   </label>
   <p id="file-status" class="status" role="status"></p>
 
@@ -68,6 +68,7 @@
   </section>
 
   <script src="archive-reader.js"></script>
+  <script src="csv-reader.js"></script>
   <script src="contribute.js"></script>
 </body>
 </html>

@@ -46,11 +46,19 @@
 
   function parseTwitterDate(raw) {
     const match = /^(?:\w{3}) (\w{3}) (\d{2}) (\d{2}):(\d{2}):(\d{2}) ([+-])(\d{2})(\d{2}) (\d{4})$/.exec(raw || "");
-    if (!match) return null;
-    const month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].indexOf(match[1]);
-    if (month < 0) return null;
-    const offset = (Number(match[7]) * 60 + Number(match[8])) * (match[6] === "+" ? 1 : -1);
-    const time = Date.UTC(Number(match[9]), month, Number(match[2]), Number(match[3]), Number(match[4]), Number(match[5])) - offset * 60_000;
+    let time;
+    if (match) {
+      const month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].indexOf(match[1]);
+      if (month < 0) return null;
+      const offset = (Number(match[7]) * 60 + Number(match[8])) * (match[6] === "+" ? 1 : -1);
+      time = Date.UTC(Number(match[9]), month, Number(match[2]), Number(match[3]), Number(match[4]), Number(match[5])) - offset * 60_000;
+    } else if (/^\d{10}$/.test(String(raw).trim())) {
+      time = Number(raw) * 1_000;
+    } else if (/^\d{13}$/.test(String(raw).trim())) {
+      time = Number(raw);
+    } else {
+      time = Date.parse(raw);
+    }
     const date = new Date(time);
     return Number.isNaN(date.getTime()) ? null : date;
   }
@@ -72,11 +80,23 @@
 
   async function readParts(files) {
     const zip = files.find((file) => /\.zip$/i.test(file.name) || file.type === "application/zip");
-    if (zip) return tweetPartsFromZip(zip);
+    if (zip) {
+      const parts = await tweetPartsFromZip(zip);
+      return parts.map((part) => ({ name: part.name, readTweets: async () => parsePart(await part.readText()) }));
+    }
     const js = files.filter((file) => /tweets(?:-part\d+)?\.js$/i.test(file.name) && !/^tweet-headers/i.test(file.name));
-    if (!js.length) throw new Error("Choose the X archive ZIP, or one or more tweets.js files.");
-    js.sort((a, b) => a.name.length - b.name.length || a.name.localeCompare(b.name));
-    return js.map((file) => ({ name: file.name, readText: () => file.text() }));
+    const csv = files.filter((file) => /\.csv$/i.test(file.name) || file.type === "text/csv");
+    if (!js.length && !csv.length) throw new Error("Choose an X archive ZIP, tweets.js, or a tweet CSV file.");
+    const selected = [...js.map((file) => ({ file, kind: "js" })), ...csv.map((file) => ({ file, kind: "csv" }))];
+    selected.sort((a, b) => a.file.name.length - b.file.name.length || a.file.name.localeCompare(b.file.name));
+    return selected.map(({ file, kind }) => ({
+      name: file.name,
+      readTweets: async () => {
+        if (kind === "js") return parsePart(await file.text());
+        if (!window.MYNCsvReader) throw new Error("The CSV reader did not load. Refresh the page and try again.");
+        return window.MYNCsvReader.parseTweets(await file.text(), file.name);
+      },
+    }));
   }
 
   function collectTweets(rawTweets, kept) {
@@ -231,7 +251,7 @@
       let rawCount = 0;
       for (let index = 0; index < parts.length; index += 1) {
         setStatus("file-status", `Reading tweet file ${index + 1} of ${parts.length} locally...`);
-        const raw = parsePart(await parts[index].readText());
+        const raw = await parts[index].readTweets();
         rawCount += raw.length;
         collectTweets(raw, kept);
       }
