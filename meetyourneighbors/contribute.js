@@ -6,7 +6,7 @@
   const MAX_DOCS = 12_000;
   const WINDOW_DAYS = 365 * 3;
   const TIME_STRATA = 12;
-  const MAX_TWEET_DATA_BYTES = 500 * 1024 * 1024;
+  const MAX_TWEET_DATA_BYTES = 2 * 1024 * 1024 * 1024;
   const PIPELINE_VERSION = "0.7.0";
   const SCHEMA_VERSION = "meetmyneighbors-contribution-v1";
   const CONSENT_VERSION = "2026-08-10";
@@ -62,68 +62,12 @@
     return parsed.map((item) => item.tweet || item);
   }
 
-  function uint(view, offset, bytes) {
-    if (bytes === 2) return view.getUint16(offset, true);
-    return view.getUint32(offset, true);
-  }
-
-  async function inflateRaw(bytes) {
-    if (!("DecompressionStream" in window)) {
-      throw new Error("This browser cannot open ZIP files locally. Unzip the archive and choose tweets.js instead.");
-    }
-    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
-    return new Uint8Array(await new Response(stream).arrayBuffer());
-  }
-
   async function tweetPartsFromZip(file) {
-    setStatus("file-status", `Opening ${file.name} locally…`);
-    const buffer = await file.arrayBuffer();
-    const view = new DataView(buffer);
-    const bytes = new Uint8Array(buffer);
-    let eocd = -1;
-    for (let i = Math.max(0, bytes.length - 65_557); i <= bytes.length - 22; i += 1) {
-      if (view.getUint32(i, true) === 0x06054b50) eocd = i;
-    }
-    if (eocd < 0) throw new Error("This does not look like a readable ZIP archive.");
-
-    const entryCount = uint(view, eocd + 10, 2);
-    let cursor = uint(view, eocd + 16, 4);
-    const entries = [];
-    let totalUncompressed = 0;
-    for (let index = 0; index < entryCount; index += 1) {
-      if (view.getUint32(cursor, true) !== 0x02014b50) throw new Error("The ZIP directory is damaged or unsupported.");
-      const method = uint(view, cursor + 10, 2);
-      const compressedSize = uint(view, cursor + 20, 4);
-      const uncompressedSize = uint(view, cursor + 24, 4);
-      const nameLength = uint(view, cursor + 28, 2);
-      const extraLength = uint(view, cursor + 30, 2);
-      const commentLength = uint(view, cursor + 32, 2);
-      const localOffset = uint(view, cursor + 42, 4);
-      const name = new TextDecoder().decode(bytes.slice(cursor + 46, cursor + 46 + nameLength));
-      if (/(^|\/)tweets(?:-part\d+)?\.js$/i.test(name) && !/tweet-headers/i.test(name)) {
-        entries.push({ name, method, compressedSize, uncompressedSize, localOffset });
-        totalUncompressed += uncompressedSize;
-      }
-      cursor += 46 + nameLength + extraLength + commentLength;
-    }
-    if (!entries.length) throw new Error("No tweets.js files were found inside this ZIP.");
-    if (totalUncompressed > MAX_TWEET_DATA_BYTES) throw new Error("The tweet files in this archive are too large for this pilot (over 500 MB).");
-
-    entries.sort((a, b) => a.name.length - b.name.length || a.name.localeCompare(b.name));
-    const result = [];
-    for (const entry of entries) {
-      if (view.getUint32(entry.localOffset, true) !== 0x04034b50) throw new Error(`Could not read ${entry.name}.`);
-      const nameLength = uint(view, entry.localOffset + 26, 2);
-      const extraLength = uint(view, entry.localOffset + 28, 2);
-      const start = entry.localOffset + 30 + nameLength + extraLength;
-      const compressed = bytes.slice(start, start + entry.compressedSize);
-      let content;
-      if (entry.method === 0) content = compressed;
-      else if (entry.method === 8) content = await inflateRaw(compressed);
-      else throw new Error(`The ZIP compression used for ${entry.name} is unsupported.`);
-      result.push({ name: entry.name, text: new TextDecoder().decode(content) });
-    }
-    return result;
+    setStatus("file-status", `Opening ${file.name} locally...`);
+    if (!window.MYNArchiveReader) throw new Error("The archive reader did not load. Refresh the page and try again.");
+    return window.MYNArchiveReader.openTweetParts(file, {
+      maxTotalUncompressedBytes: MAX_TWEET_DATA_BYTES,
+    });
   }
 
   async function readParts(files) {
@@ -132,13 +76,10 @@
     const js = files.filter((file) => /tweets(?:-part\d+)?\.js$/i.test(file.name) && !/^tweet-headers/i.test(file.name));
     if (!js.length) throw new Error("Choose the X archive ZIP, or one or more tweets.js files.");
     js.sort((a, b) => a.name.length - b.name.length || a.name.localeCompare(b.name));
-    const parts = [];
-    for (const file of js) parts.push({ name: file.name, text: await file.text() });
-    return parts;
+    return js.map((file) => ({ name: file.name, readText: () => file.text() }));
   }
 
-  function buildDocuments(rawTweets) {
-    const kept = new Map();
+  function collectTweets(rawTweets, kept) {
     for (const tweet of rawTweets) {
       const full = tweet.full_text || tweet.text || "";
       if (full.startsWith("RT @") || Object.prototype.hasOwnProperty.call(tweet, "retweeted_status")) continue;
@@ -148,7 +89,9 @@
       if (!id || !date || words(text) < 5) continue;
       kept.set(id, { id, text, createdAt: date, replyTo: tweet.in_reply_to_status_id_str || null });
     }
+  }
 
+  function buildDocuments(kept) {
     const children = new Map();
     const isChild = new Set();
     for (const tweet of kept.values()) {
@@ -284,14 +227,21 @@
     $("done").hidden = true;
     try {
       const parts = await readParts([...fileList]);
-      const raw = parts.flatMap((part) => parsePart(part.text));
-      const docs = applyWindow(buildDocuments(raw));
+      const kept = new Map();
+      let rawCount = 0;
+      for (let index = 0; index < parts.length; index += 1) {
+        setStatus("file-status", `Reading tweet file ${index + 1} of ${parts.length} locally...`);
+        const raw = parsePart(await parts[index].readText());
+        rawCount += raw.length;
+        collectTweets(raw, kept);
+      }
+      const docs = applyWindow(buildDocuments(kept));
       if (!docs.length) throw new Error("No eligible posts were found in the recent three-year window.");
       const sample = sampleDocuments(docs);
       const sampledWords = sample.reduce((sum, doc) => sum + words(doc.text), 0);
       const availableWords = docs.reduce((sum, doc) => sum + words(doc.text), 0);
       prepared = {
-        rawCount: raw.length,
+        rawCount,
         eligibleCount: docs.length,
         availableWords,
         sampledWords,
@@ -299,7 +249,7 @@
         sourceParts: parts.length,
         sample,
       };
-      $("stat-raw").textContent = raw.length.toLocaleString();
+      $("stat-raw").textContent = rawCount.toLocaleString();
       $("stat-kept").textContent = docs.length.toLocaleString();
       $("stat-words").textContent = sampledWords.toLocaleString();
       $("stat-dates").textContent = `${prepared.dateRange[0].getUTCFullYear()}–${prepared.dateRange[1].getUTCFullYear()}`;
