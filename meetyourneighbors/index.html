@@ -5,6 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="mmn-map-endpoint" content="https://stalwart-counter.pages.dev/api/map">
 <title>Meet Your Neighbors</title>
+<meta name="description" content="A political compass without labels.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://thestalwart.com/meetyourneighbors/">
+<meta property="og:title" content="Meet Your Neighbors">
+<meta property="og:description" content="A political compass without labels.">
+<meta property="og:image" content="https://thestalwart.com/meetyourneighbors/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Meet Your Neighbors — A Political Compass Without Labels">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Meet Your Neighbors">
+<meta name="twitter:description" content="A political compass without labels.">
+<meta name="twitter:image" content="https://thestalwart.com/meetyourneighbors/social-card.png">
+<meta name="twitter:image:alt" content="Meet Your Neighbors — A Political Compass Without Labels">
 <style>
 :root {
   --bg: #ddeedd;
@@ -584,6 +598,10 @@ function sourceLabel(person) {
   return person.tier === "contributed" ? "Uploaded by participant" : "From a public archive";
 }
 
+function poleRadius(person) {
+  return 7.5 + 2.5 * Number(D.people[person].pole_weight || 0.8);
+}
+
 function computeAxisScores(person) {
   var result = {};
   AXES.forEach(function (axis) {
@@ -798,7 +816,10 @@ function drawMap() {
 
   var drawingOrder = [];
   for (var i = 0; i < N; i++) if (i !== focus) drawingOrder.push(i);
-  drawingOrder.sort(function (a, b) { return rankOf[b] - rankOf[a]; });
+  drawingOrder.sort(function (a, b) {
+    var poleDifference = Number(Boolean(D.people[a].pole)) - Number(Boolean(D.people[b].pole));
+    return poleDifference || rankOf[b] - rankOf[a];
+  });
 
   for (var d = 0; d < drawingOrder.length; d++) {
     var person = drawingOrder[d];
@@ -807,6 +828,7 @@ function drawMap() {
     var radius = highlighted
       ? 8 - 3.5 * ((rank - 1) / Math.max(1, HIGHLIGHT_NEIGHBORS - 1))
       : 2.7;
+    if (D.people[person].pole) radius = Math.max(radius, poleRadius(person));
     if (person === hot) radius += 2.5;
 
     ctx.beginPath();
@@ -816,9 +838,24 @@ function drawMap() {
     ctx.fill();
     ctx.globalAlpha = 1;
 
+    if (D.people[person].pole) {
+      ctx.beginPath();
+      ctx.arc(points[person][0], points[person][1], radius + 2, 0, Math.PI * 2);
+      ctx.globalAlpha = .55;
+      ctx.strokeStyle = css.fg;
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
     if (person === hot) {
       drawLabel("@" + D.people[person].handle, points[person][0], points[person][1] - radius - 6, false, rect.width);
     }
+  }
+
+  for (var labelIndex = 0; labelIndex < N; labelIndex++) {
+    if (!D.people[labelIndex].pole || labelIndex === focus || labelIndex === hot) continue;
+    drawLabel("@" + D.people[labelIndex].handle, points[labelIndex][0], points[labelIndex][1] - poleRadius(labelIndex) - 6, false, rect.width);
   }
 
   var here = points[focus];
