@@ -2,7 +2,7 @@
   "pipeline_version": "cards-0.7.0",
   "extraction_mode": "private_crisp_cards",
   "embedding_model": "openai/text-embedding-3-small",
-  "generated_at": "2026-08-11T10:19:43.704Z",
+  "generated_at": "2026-08-11T10:56:11.559Z",
   "is_sample_data": false,
   "layout_method": "browser_classical_mds",
   "views": [
@@ -21,14 +21,14 @@
       "handle": "almostmedia",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.2764
+      "dot_scale": 1.5528
     },
     {
       "id": "contribution:38be8bb63692406f8e48cda3783d6d26",
       "handle": "amelapay",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.1483
+      "dot_scale": 1.2967
     },
     {
       "id": "contribution:d12f7bb13f024fb49d82ddcf6cc830f2",
@@ -42,203 +42,203 @@
       "handle": "cis_female",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.1309
+      "dot_scale": 1.2618
     },
     {
       "id": "cremieuxrecueil",
       "handle": "cremieuxrecueil",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.4189
+      "dot_scale": 1.8378
     },
     {
       "id": "DanielleFong",
       "handle": "DanielleFong",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.3004
+      "dot_scale": 1.6008
     },
     {
       "id": "contribution:7fd97fb663354cd7aa38074a0d2d5644",
       "handle": "demiurgently",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.1471
+      "dot_scale": 1.2942
     },
     {
       "id": "DRMacIver",
       "handle": "DRMacIver",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.1519
+      "dot_scale": 1.3039
     },
     {
       "id": "eigenrobot",
       "handle": "eigenrobot",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.3837
+      "dot_scale": 1.7673
     },
     {
       "id": "eshear",
       "handle": "eshear",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.3484
+      "dot_scale": 1.6969
     },
     {
       "id": "ESYudkowsky",
       "handle": "ESYudkowsky",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.3942
+      "dot_scale": 1.7884
     },
     {
       "id": "goblinodds",
       "handle": "goblinodds",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.2437
+      "dot_scale": 1.4874
     },
     {
       "id": "contribution:46c505d02db445e0b26cdfa8a9bcde61",
       "handle": "katiebakes",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.2668
+      "dot_scale": 1.5336
     },
     {
       "id": "KelseyTuoc",
       "handle": "KelseyTuoc",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.306
+      "dot_scale": 1.6121
     },
     {
       "id": "contribution:988d9cea406c47c08447f6e670e2f11c",
       "handle": "lu_sichu",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.1128
+      "dot_scale": 1.2256
     },
     {
       "id": "Malcolm_Ocean",
       "handle": "Malcolm_Ocean",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.1725
+      "dot_scale": 1.345
     },
     {
       "id": "mattyglesias",
       "handle": "mattyglesias",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.4914
+      "dot_scale": 1.9829
     },
     {
       "id": "contribution:d9906fb169564894a69deccb9e37f831",
       "handle": "mbateman",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.2538
+      "dot_scale": 1.5077
     },
     {
       "id": "moseskagan",
       "handle": "moseskagan",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.3915
+      "dot_scale": 1.783
     },
     {
       "id": "NateSilver538",
       "handle": "NateSilver538",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.5
+      "dot_scale": 2
     },
     {
       "id": "NathanpmYoung",
       "handle": "NathanpmYoung",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.2506
+      "dot_scale": 1.5012
     },
     {
       "id": "Noahpinion",
       "handle": "Noahpinion",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.4852
+      "dot_scale": 1.9704
     },
     {
       "id": "nosilverv",
       "handle": "nosilverv",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.2545
+      "dot_scale": 1.509
     },
     {
       "id": "patio11",
       "handle": "patio11",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.3825
+      "dot_scale": 1.765
     },
     {
       "id": "paulg",
       "handle": "paulg",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.5
+      "dot_scale": 2
     },
     {
       "id": "QiaochuYuan",
       "handle": "QiaochuYuan",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.2613
+      "dot_scale": 1.5225
     },
     {
       "id": "RichardHanania",
       "handle": "RichardHanania",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.3908
+      "dot_scale": 1.7815
     },
     {
       "id": "robinhanson",
       "handle": "robinhanson",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.3493
+      "dot_scale": 1.6986
     },
     {
       "id": "contribution:d24aafce42744c32b3919f37c6f06971",
       "handle": "Roon",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.4415
+      "dot_scale": 1.8829
     },
     {
       "id": "ryangrim",
       "handle": "ryangrim",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.4541
+      "dot_scale": 1.9083
     },
     {
       "id": "s8mb",
       "handle": "s8mb",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.3064
+      "dot_scale": 1.6128
     },
     {
       "id": "SamoBurja",
       "handle": "SamoBurja",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.3234
+      "dot_scale": 1.6468
     },
     {
       "id": "thestalwart",
@@ -252,28 +252,28 @@
       "handle": "thezvi",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.2679
+      "dot_scale": 1.5358
     },
     {
       "id": "tracewoodgrains",
       "handle": "tracewoodgrains",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.2807
+      "dot_scale": 1.5613
     },
     {
       "id": "visakanv",
       "handle": "visakanv",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.3947
+      "dot_scale": 1.7894
     },
     {
       "id": "zei_squirrel",
       "handle": "zei_squirrel",
       "tier": "seed",
       "n_runs": 1,
-      "dot_scale": 1.4232
+      "dot_scale": 1.8463
     }
   ],
   "similarity": {
